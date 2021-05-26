@@ -706,7 +706,6 @@ class Executor:
 
         if render:
             if self.config['env_type'] == ALE or self.config['env_type'] == BOX2D:
-                pass
                 self.video_recorder = gym_video_recorder. \
                     VideoRecorder(self.env,
                                   base_path=os.path.join(self.save_videos_path, '{}_{}'.format(
@@ -729,8 +728,7 @@ class Executor:
 
         if render:
             if self.config['env_type'] == ALE or self.config['env_type'] == BOX2D:
-                pass
-                #self.video_recorder.capture_frame()
+                self.video_recorder.capture_frame()
             elif self.config['env_type'] == MINATAR:
                 self.obs_images.append(self.render(self.env))
             elif self.config['env_type'] == MAPE:
