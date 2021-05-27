@@ -103,8 +103,6 @@ CONFIG_SETS = {}
 id = 0
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['save-models'] = True
-# CONFIG_SETS[id][0]['evaluation-period'] = int(50e3)
-# CONFIG_SETS[id][0]['n-evaluation-trials'] = 10
 CONFIG_SETS[id][0]['n-training-frames'] = int(2e6)
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -113,6 +111,7 @@ CONFIG_SETS[id][0]['n-training-frames'] = int(2e6)
 id = 500
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][1]['execute-teacher-policy'] = True
 CONFIG_SETS[id][0]['n-training-frames'] = int(1)
 CONFIG_SETS[id][1]['visualize-videos'] = True
 CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
