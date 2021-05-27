@@ -4,7 +4,7 @@ def generate_config():
     config[0]['run-id'] = None
     config[0]['process-index'] = 0
     config[0]['machine-name'] = 'NONE'
-    config[0]['n-training-frames'] = int(500e3)
+    config[0]['n-training-frames'] = int(1e6)
     config[0]['n-evaluation-trials'] = 10
     config[0]['evaluation-period'] = int(10e3)
 
@@ -14,7 +14,7 @@ def generate_config():
 
     config[0]['dqn-type'] = 'egreedy'  # 'egreedy', 'noisy'
     config[0]['dqn-gamma'] = 0.99
-    config[0]['dqn-rm-type'] = 'uniform'
+    config[0]['dqn-rm-type'] = 'uniform'  # 'uniform', 'per'
     config[0]['dqn-rm-init'] = int(10e3)
     config[0]['dqn-rm-max'] = int(100e3)
     config[0]['dqn-per-alpha'] = 0.4
@@ -36,7 +36,7 @@ def generate_config():
 
     config[1]['use-gpu'] = False
     config[1]['save-models'] = False
-    config[0]['model-save-period'] = int(100e3)
+    config[0]['model-save-period'] = int(50e3)
     config[0]['env-key'] = 'NONE'
     config[0]['env-training-seed'] = 0
     config[0]['env-evaluation-seed'] = 1
@@ -71,6 +71,7 @@ def generate_config():
     config[0]['advice-imitation-training-iterations-init'] = 0
     config[0]['advice-imitation-training-iterations-periodic'] = 0
 
+
     config[0]['bc-batch-size'] = 32
     config[0]['bc-learning-rate'] = 0.0001
     config[0]['bc-adam-eps'] = 0.00015
@@ -102,11 +103,22 @@ CONFIG_SETS = {}
 id = 0
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['save-models'] = True
-CONFIG_SETS[id][0]['evaluation-period'] = int(50e3)
-CONFIG_SETS[id][0]['n-evaluation-trials'] = 10
-CONFIG_SETS[id][0]['n-training-frames'] = int(1e6)
+# CONFIG_SETS[id][0]['evaluation-period'] = int(50e3)
+# CONFIG_SETS[id][0]['n-evaluation-trials'] = 10
+CONFIG_SETS[id][0]['n-training-frames'] = int(2e6)
 
 # ----------------------------------------------------------------------------------------------------------------------
+# Evaluate teacher (with a single evaluation step)
+
+id = 500
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][0]['n-training-frames'] = int(1)
+CONFIG_SETS[id][1]['visualize-videos'] = True
+CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 # NA: No Advising (Training from scratch)
 
 id = 1000
