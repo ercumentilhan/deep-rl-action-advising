@@ -289,17 +289,12 @@ class Executor:
             teacher_info = TEACHER[self.config['env_key']]
             self.config['teacher_id'] = teacher_info[0]
 
-            # Pre-trained teacher model is epsilon-greedy
-            if 'EG' in self.config['teacher_id']:
-                self.teacher_agent = EpsilonGreedyDQN(self.config['teacher_id'], self.config, self.session,
-                                                                 eps_start=0.0, eps_final=0.0, eps_steps=1,
-                                                                 stats=self.stats,
-                                                                 demonstrations_datasets=())
+            # Teacher is assumed to be generated with epsilon greedy model
+            self.teacher_agent = EpsilonGreedyDQN(self.config['teacher_id'], self.config, self.session,
+                                                             eps_start=0.0, eps_final=0.0, eps_steps=1,
+                                                             stats=self.stats,
+                                                             demonstrations_datasets=())
 
-            # Pre-trained teacher model is noisy networks
-            elif 'NN' in self.config['teacher_id']:
-                self.teacher_agent = NoisyNetsDQN(self.config['teacher_id'], self.config, self.session,
-                                                             stats=self.stats, demonstrations_datasets=())
 
         # --------------------------------------------------------------------------------------------------------------
         # Initialise the behavioural cloning module (for teacher imitation)
@@ -402,6 +397,7 @@ class Executor:
                 self.stats.exploration_steps_taken_cum += 1
 
             # ----------------------------------------------------------------------------------------------------------
+            # Advice Collection
 
             advice_collection_occurred = False
 
