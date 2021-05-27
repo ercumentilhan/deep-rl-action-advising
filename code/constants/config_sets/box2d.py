@@ -117,7 +117,6 @@ CONFIG_SETS[id][1]['visualize-videos'] = True
 CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
 
 # ----------------------------------------------------------------------------------------------------------------------
-
 # NA: No Advising (Training from scratch)
 
 id = 1000
@@ -130,7 +129,7 @@ id = 2000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(25000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # RA: Random Advising
@@ -139,7 +138,7 @@ id = 2100
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(25000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR: Advice Reuse
@@ -150,7 +149,7 @@ CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
 CONFIG_SETS[id][0]['advice-collection-uncertainty-threshold'] = 0.01
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(25000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
 CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
 CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
@@ -165,7 +164,7 @@ id = 6000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(25000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
 CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
 CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
@@ -180,7 +179,7 @@ id = 7000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(25000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
 CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
 CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
@@ -199,7 +198,7 @@ id = 8000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'uncertainty_based'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(25000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
 CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
 CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
