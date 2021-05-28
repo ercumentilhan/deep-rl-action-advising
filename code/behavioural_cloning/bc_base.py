@@ -126,16 +126,29 @@ class BehaviouralCloning(object):
     # ==================================================================================================================
 
     def dense_layers(self, scope, inputs, hidden_size, output_size):
-        with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
-            layer_1_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_1', rate=self.dropout_rate_ph)
-            layer_1_out = tf.compat.v1.layers.dense(layer_1_in, hidden_size, use_bias=True,
-                                                kernel_initializer=tf.keras.initializers.VarianceScaling(),
-                                                activation=tf.nn.relu, name='DENSE_LAYER_1')
+        if self.config['env_obs_form'] == NONSPATIAL:  # Dropout in final layer(s) only!
+            with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
+                layer_1_out = tf.compat.v1.layers.dense(inputs, hidden_size, use_bias=True,
+                                                        kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                        activation=tf.nn.relu, name='DENSE_LAYER_1')
 
-            layer_2_in = tf.compat.v1.nn.dropout(layer_1_out, name='DROPOUT_LAYER_2', rate=self.dropout_rate_ph)
-            layer_2_out = tf.compat.v1.layers.dense(layer_2_in, output_size, use_bias=True,
-                                                kernel_initializer=tf.keras.initializers.VarianceScaling(),
-                                                activation=None, name='DENSE_LAYER_2')
+                layer_2_in = tf.compat.v1.nn.dropout(layer_1_out, name='DROPOUT_LAYER_2', rate=self.dropout_rate_ph)
+                layer_2_out = tf.compat.v1.layers.dense(layer_2_in, output_size, use_bias=True,
+                                                        kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                        activation=None, name='DENSE_LAYER_2')
+            return layer_2_out, layer_1_out
+
+        elif self.config['env_obs_form'] == SPATIAL:  # Full Dropout when following a ConvNet
+            with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
+                layer_1_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_1', rate=self.dropout_rate_ph)
+                layer_1_out = tf.compat.v1.layers.dense(layer_1_in, hidden_size, use_bias=True,
+                                                    kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                    activation=tf.nn.relu, name='DENSE_LAYER_1')
+
+                layer_2_in = tf.compat.v1.nn.dropout(layer_1_out, name='DROPOUT_LAYER_2', rate=self.dropout_rate_ph)
+                layer_2_out = tf.compat.v1.layers.dense(layer_2_in, output_size, use_bias=True,
+                                                    kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                    activation=None, name='DENSE_LAYER_2')
             return layer_2_out, layer_1_out
 
     # ==================================================================================================================
