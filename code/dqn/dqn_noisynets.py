@@ -36,7 +36,7 @@ class NoisyNetsDQN(DQN):
         self.update_target_weights = super().build_copy_ops()
         self.build_training_ops()
 
-        # Load any provided demonstrations datasets into the replay memor
+        # Load any provided demonstrations datasets into the replay memory
         self.load_datasets()
 
     # ==================================================================================================================
