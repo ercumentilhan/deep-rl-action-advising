@@ -95,11 +95,11 @@ def generate_config():
 
 # ======================================================================================================================
 
+BOX2D_AA_BUDGET = 2000  # To be set according to the experiment preference
 CONFIG_SETS = {}
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Generate teacher (Long training from scratch)
-
 id = 0
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['save-models'] = True
@@ -107,18 +107,17 @@ CONFIG_SETS[id][0]['n-training-frames'] = int(2e6)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Evaluate teacher (with a single evaluation step)
-
 id = 500
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][1]['execute-teacher-policy'] = True
-CONFIG_SETS[id][0]['n-training-frames'] = int(1)
-CONFIG_SETS[id][1]['visualize-videos'] = True
+CONFIG_SETS[id][0]['dqn-rm-init'] = int(1e6)  # Do NOT train the model in this evaluation setup
+CONFIG_SETS[id][0]['n-training-frames'] = int(50e3)
+# CONFIG_SETS[id][1]['visualize-videos'] = True
 CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
 
 # ----------------------------------------------------------------------------------------------------------------------
 # NA: No Advising (Training from scratch)
-
 id = 1000
 CONFIG_SETS[id] = generate_config()
 
@@ -129,7 +128,7 @@ id = 2000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(1000)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # RA: Random Advising
@@ -138,7 +137,7 @@ id = 2100
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(1000)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR: Advice Reuse
@@ -149,10 +148,11 @@ CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
 CONFIG_SETS[id][0]['advice-collection-uncertainty-threshold'] = 0.01
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
 CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
+CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(100e3)
 CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
 CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
 CONFIG_SETS[id][0]['advice-reuse-uncertainty-threshold'] = 0.01
@@ -164,10 +164,11 @@ id = 6000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
 CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
+CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(100e3)
 CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
 CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
 CONFIG_SETS[id][1]['autoset-advice-uncertainty-threshold'] = True
@@ -179,10 +180,11 @@ id = 7000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
 CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
+CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(100e3)
 CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
 CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
 CONFIG_SETS[id][1]['autoset-advice-uncertainty-threshold'] = True
@@ -198,15 +200,18 @@ id = 8000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'uncertainty_based'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(5000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
 CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(50e3)
+CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e3)
+CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(50)
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(100e3)
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(25e3)
 CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
 CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
 CONFIG_SETS[id][1]['autoset-advice-uncertainty-threshold'] = True
 CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(50e3)
+CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(250e3)
 CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+
+# ----------------------------------------------------------------------------------------------------------------------
