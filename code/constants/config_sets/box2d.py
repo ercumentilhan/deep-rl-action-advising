@@ -128,7 +128,7 @@ id = 2000
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(1000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # RA: Random Advising
@@ -137,7 +137,7 @@ id = 2100
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(1000)
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR: Advice Reuse
