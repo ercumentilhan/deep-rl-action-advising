@@ -64,6 +64,7 @@ class Executor:
         self.checkpoints_dir = None
         self.copy_scripts_dir = None
         self.videos_dir = None
+        self.obs_images_dir = None
 
         self.save_summary_path = None
         self.save_model_path = None
@@ -154,8 +155,8 @@ class Executor:
         self.videos_dir = os.path.join(self.runs_local_dir, 'Videos')
         os.makedirs(self.videos_dir, exist_ok=True)
 
-        self.data_dir = os.path.join(self.runs_local_dir, 'Data')
-        os.makedirs(self.data_dir, exist_ok=True)
+        self.obs_images_dir = os.path.join(self.runs_local_dir, 'Observations')
+        os.makedirs(self.obs_images_dir, exist_ok=True)
 
         self.replay_memory_dir = os.path.join(self.runs_local_dir, 'ReplayMemory')
         os.makedirs(self.replay_memory_dir, exist_ok=True)
@@ -164,7 +165,8 @@ class Executor:
         self.save_model_path = os.path.join(self.checkpoints_dir, self.run_id, self.seed_id)
         self.save_scripts_path = os.path.join(self.copy_scripts_dir, self.run_id, self.seed_id)
         self.save_videos_path = os.path.join(self.videos_dir, self.run_id, self.seed_id)
-        self.save_data_path = os.path.join(self.data_dir, self.run_id, self.seed_id)
+        self.save_obs_real_images_path = os.path.join(self.obs_images_dir, self.run_id, self.seed_id, 'Real')
+        self.save_obs_agent_images_path = os.path.join(self.obs_images_dir, self.run_id, self.seed_id, 'Agent')
         self.save_replay_memory_path = os.path.join(self.replay_memory_dir, self.run_id, self.seed_id)
 
         if self.config['save_models']:
@@ -174,6 +176,10 @@ class Executor:
             os.makedirs(self.save_replay_memory_path, exist_ok=True)
 
         os.makedirs(self.save_videos_path, exist_ok=True)
+
+        if self.config['save_obs_images']:
+            os.makedirs(self.save_obs_real_images_path, exist_ok=True)
+            os.makedirs(self.save_obs_agent_images_path, exist_ok=True)
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -354,6 +360,9 @@ class Executor:
         print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
 
         obs, render = self.reset_env()
+
+        if self.config['save_obs_images']:
+            self.save_obs_image(obs)
 
         reward_is_seen = False  # For debugging
 
@@ -560,6 +569,9 @@ class Executor:
                 'expert_action': None,  # self.teacher_agent.get_greedy_action(obs) - For debugging
                 'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
             }
+
+            if self.config['save_obs_images']:
+                self.save_obs_image(obs_next)
 
             if render:
                 if self.config['env_type'] == ALE:
@@ -888,6 +900,16 @@ class Executor:
             self.stats.n_env_steps)
         print('[{}] Saving model... {}'.format(self.stats.n_env_steps, model_path))
         self.saver.save(self.session, model_path)
+
+    # ==================================================================================================================
+
+    def save_obs_image(self, obs):
+        if self.config['env_type'] == ALE:
+            black_line = np.zeros((84, 1), dtype=np.uint8)
+            rendered_frame = self.env.render(mode='rgb_array')
+            cv2.imwrite(self.save_obs_real_images_path + '/' + str(id) + '.png', rendered_frame[:, :, ::-1])
+            cv2.imwrite(self.save_obs_agent_images_path + '/' + str(id) + '.png', np.asarray(np.hstack((
+            obs[0], black_line, obs[1], black_line, obs[2], black_line, obs[3]))))
 
 # ======================================================================================================================
 

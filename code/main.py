@@ -33,6 +33,7 @@ if __name__ == '__main__':
     parser.add_argument('--evaluation-visualization-period', type=int, default=200)
 
     parser.add_argument('--visualize-videos', action='store_true', default=False)
+    parser.add_argument('--save-obs-images', action='store_true', default=False)
 
     parser.add_argument('--dqn-type', type=str, default='egreedy')
     parser.add_argument('--dqn-gamma', type=float, default=0.99)

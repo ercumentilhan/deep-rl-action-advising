@@ -12,6 +12,8 @@ def generate_config():
     config[0]['evaluation-visualization-period'] = 5
     config[0]['visualization-period'] = 50
 
+    config[1]['save-obs-images'] = False
+
     config[0]['dqn-type'] = 'egreedy'  # 'egreedy', 'noisy'
     config[0]['dqn-gamma'] = 0.99
     config[0]['dqn-rm-type'] = 'uniform'
