@@ -362,7 +362,7 @@ class Executor:
         obs, render = self.reset_env()
 
         if self.config['save_obs_images']:
-            self.save_obs_image(obs)
+            self.save_obs_image(obs, self.stats.n_env_steps)
 
         reward_is_seen = False  # For debugging
 
@@ -570,9 +570,6 @@ class Executor:
                 'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
             }
 
-            if self.config['save_obs_images']:
-                self.save_obs_image(obs_next)
-
             if render:
                 if self.config['env_type'] == ALE:
                     self.video_recorder.capture_frame()
@@ -597,6 +594,9 @@ class Executor:
             if reward > 0 and reward_is_seen is False:
                 reward_is_seen = True
                 print(">>> Reward is seen at ", self.stats.n_episodes, "|", self.episode_duration)
+
+            if self.config['save_obs_images']:
+                self.save_obs_image(obs_next, self.stats.n_env_steps)
 
             # ----------------------------------------------------------------------------------------------------------
             # Feedback
@@ -903,12 +903,12 @@ class Executor:
 
     # ==================================================================================================================
 
-    def save_obs_image(self, obs):
+    def save_obs_image(self, obs, t):
         if self.config['env_type'] == ALE:
             black_line = np.zeros((84, 1), dtype=np.uint8)
             rendered_frame = self.env.render(mode='rgb_array')
-            cv2.imwrite(self.save_obs_real_images_path + '/' + str(id) + '.png', rendered_frame[:, :, ::-1])
-            cv2.imwrite(self.save_obs_agent_images_path + '/' + str(id) + '.png', np.asarray(np.hstack((
+            cv2.imwrite(self.save_obs_real_images_path + '/' + str(t) + '.png', rendered_frame[:, :, ::-1])
+            cv2.imwrite(self.save_obs_agent_images_path + '/' + str(t) + '.png', np.asarray(np.hstack((
             obs[0], black_line, obs[1], black_line, obs[2], black_line, obs[3]))))
 
 # ======================================================================================================================
