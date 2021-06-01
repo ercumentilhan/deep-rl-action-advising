@@ -115,6 +115,17 @@ CONFIG_SETS[id][0]['n-evaluation-trials'] = 10
 CONFIG_SETS[id][0]['n-training-frames'] = int(10e6)
 
 # ----------------------------------------------------------------------------------------------------------------------
+# Evaluate teacher (with a single evaluation step)
+id = 500
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][1]['execute-teacher-policy'] = True
+CONFIG_SETS[id][0]['dqn-rm-init'] = int(1e6)  # Do NOT train the model in this evaluation setup
+CONFIG_SETS[id][0]['n-training-frames'] = int(50e3)
+CONFIG_SETS[id][1]['visualize-videos'] = True
+CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
+
+# ----------------------------------------------------------------------------------------------------------------------
 # NA: No Advising (Training from scratch)
 
 id = 1000
