@@ -26,7 +26,7 @@ def read_data(csv_file):
         if np.shape(data)[0] == 0:
             return None, None
         return data[:, 0], data[:, 1]
-    
+
 # ======================================================================================================================
 
 def walklevel(some_dir, level=1):
@@ -91,11 +91,12 @@ def generate_plots(summaries_dir, plots_dir, tag):
 
     span = 5  # Plot smoothing span
 
-    run_dirs, plot_dirs = [], []
+    run_dirs, plot_dirs, labels = [], [], []
     for d in next(os.walk(summaries_dir))[1]:
         run_dirs.append(os.path.join(summaries_dir, d))
         plot_dirs.append(os.path.join(plots_dir, d))
         os.makedirs(plot_dirs[-1], exist_ok=True)
+        labels.append(d)
 
     for i, run_dir in enumerate(run_dirs):
         seed_dirs = []
@@ -115,7 +116,7 @@ def generate_plots(summaries_dir, plots_dir, tag):
 
         fig, ax = plt.subplots(figsize=(12, 8), dpi=100,)
 
-        sns.lineplot(x='variable', y='value', data=pda, legend='brief', err_style='band', label=tag, ci='sd')
+        sns.lineplot(x='variable', y='value', data=pda, legend='brief', err_style='band', label=labels[i], ci='sd')
 
         # Adjust legend
         plt.setp(ax.get_legend().get_texts(), fontsize='20')
@@ -142,10 +143,10 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
 
     span = 5  # Plot smoothing span
 
-    pda_all, tags = [], []
+    pda_all, labels = [], []
     run_dirs, plot_dirs = [], []
     for d in next(os.walk(summaries_dir))[1]:
-        tags.append(d)
+        labels.append(d)
         run_dirs.append(os.path.join(summaries_dir, d))
 
     for i, run_dir in enumerate(run_dirs):
@@ -169,7 +170,8 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
     fig, ax = plt.subplots(figsize=(12, 8), dpi=100, )
 
     for i, _ in enumerate(run_dirs):
-        sns.lineplot(x='variable', y='value', data=pda_all[i], legend='brief', err_style='band', label=tag, ci='sd')
+        sns.lineplot(x='variable', y='value', data=pda_all[i], legend='brief', err_style='band',
+                     label=labels[i], ci='sd')
 
     # Adjust legend
     plt.setp(ax.get_legend().get_texts(), fontsize='20')
