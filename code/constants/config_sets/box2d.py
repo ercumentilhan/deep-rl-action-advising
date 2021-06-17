@@ -4,7 +4,7 @@ def generate_config():
     config[0]['run-id'] = None
     config[0]['process-index'] = 0
     config[0]['machine-name'] = 'NONE'
-    config[0]['n-training-frames'] = int(1e6)
+    config[0]['n-training-frames'] = int(500e3)
     config[0]['n-evaluation-trials'] = 10
     config[0]['evaluation-period'] = int(10e3)
 
@@ -24,7 +24,7 @@ def generate_config():
     config[1]['dqn-per-ims'] = True
     config[0]['dqn-target-update'] = 2500
     config[0]['dqn-batch-size'] = 32
-    config[0]['dqn-learning-rate'] = 0.0000625
+    config[0]['dqn-learning-rate'] = 0.0001 # 0.0000625
     config[0]['dqn-train-per-step'] = 1
     config[0]['dqn-train-period'] = 2
     config[0]['dqn-adam-eps'] = 0.00015
@@ -158,6 +158,28 @@ CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(100e3)
 CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
 CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
 CONFIG_SETS[id][0]['advice-reuse-uncertainty-threshold'] = 0.01
+
+# ----------------------------------------------------------------------------------------------------------------------
+# AR: Advice Reuse - Budget / 2 to test extended teaching (stretched and contracted teaching)
+# Paper: "Action Advising with Advice Imitation in Deep Reinforcement Learning" (https://arxiv.org/abs/2104.08441)
+
+id = 5100
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+CONFIG_SETS[id][0]['advice-collection-uncertainty-threshold'] = 0.01
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
+CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
+CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget'] // 2
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(100e3)
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(100e3)
+CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
+CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+CONFIG_SETS[id][0]['advice-reuse-uncertainty-threshold'] = 0.01
+#Additional specs:
+CONFIG_SETS[id][0]['advice-collection-extended-budget'] = CONFIG_SETS[id][0]['advice-collection-budget'] // 2
+CONFIG_SETS[id][0]['advice-collection-extended-probability'] = 0.25
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR+A: AR is enhanced with the automatic threshold tuning technique
