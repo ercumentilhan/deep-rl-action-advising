@@ -173,6 +173,8 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         sns.lineplot(x='variable', y='value', data=pda_all[i], legend='brief', err_style='band',
                      label=labels[i], ci='sd')
 
+    ax.set_ylim([-200, None])
+
     # Adjust legend
     plt.setp(ax.get_legend().get_texts(), fontsize='20')
     plt.setp(ax.get_legend().get_title(), fontsize='25')
@@ -194,18 +196,16 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
 # ======================================================================================================================
 
 
-runs_dir = 'E:/Runs'
-summaries_dir = os.path.join(runs_dir, 'Summaries')
+runs_dir = 'E:/Runs/Summaries/LunarLander'
+game_dir = 'B25000'
+summaries_dir = os.path.join(runs_dir, game_dir)
 
 if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
-    plots_dir = os.path.join(runs_dir, 'Plots')
+    plots_dir = os.path.join(runs_dir, game_dir + '_Plots')
     tags = [
+        'Reward_Real/Steps',
         'Evaluation/Reward_Real',
-        'Advices_Taken',
-        'Advices_Reused/All',
-        'Advices_Reused_Cumulative/All',
-        'Advices_Reused_Correct/All',
-        'Advices_Reused_Cumulative_Correct/All',
+        'Advices_Taken'
             ]
 
     if os.path.exists(plots_dir):
