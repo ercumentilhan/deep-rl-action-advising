@@ -22,6 +22,8 @@ class EpsilonGreedyDQN(DQN):
         self.eps = self.eps_start
         self.eps_step = (self.eps_start - self.eps_final) / self.eps_steps
 
+        self.tf_vars['dropout_rate'] = tf.compat.v1.placeholder(tf.float32, shape=(), name='DROPOUT_RATE')
+
         self.tf_vars['pre_fc_features'], self.tf_vars['mid_fc_features'], self.tf_vars['q_values'] = \
             self.build_network(self.name_online, self.tf_vars['obs'], True, self.config['dqn_hidden_size'],
                                self.config['env_n_actions'])
@@ -231,7 +233,9 @@ class EpsilonGreedyDQN(DQN):
         if self.config['env_type'] == ALE:
             obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
 
-        feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)]}
+        feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)],
+                     self.tf_vars['dropout_rate']: 0.0}
+
         return self.session.run(self.tf_vars['q_values'], feed_dict=feed_dict)
 
     # ==================================================================================================================
@@ -240,7 +244,8 @@ class EpsilonGreedyDQN(DQN):
         if self.config['env_type'] == ALE:
             obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
 
-        feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)]}
+        feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)],
+                     self.tf_vars['dropout_rate']: 0.0}
         return self.session.run(self.tf_vars['latent_features'], feed_dict=feed_dict)
 
     # ==================================================================================================================
@@ -305,7 +310,9 @@ class EpsilonGreedyDQN(DQN):
         done_batch = super().fix_batch_form(done_batch_in, is_batch)
 
         feed_dict = {self.tf_vars['obs']: obs_next_batch,
-                     self.tf_vars['obs_tar']: obs_next_batch}
+                     self.tf_vars['obs_tar']: obs_next_batch,
+                     self.tf_vars['dropout_rate']: self.config['dqn_dropout_rate'],
+                     }
 
         q_values_next_batch, q_values_next_target_batch = \
             self.session.run([self.tf_vars['q_values'], self.tf_vars['q_values_tar']], feed_dict=feed_dict)
@@ -340,6 +347,7 @@ class EpsilonGreedyDQN(DQN):
 
         feed_dict = {self.tf_vars['obs']: obs_batch,
                      self.tf_vars['action']: action_batch,
+                     self.tf_vars['dropout_rate']: self.config['dqn_dropout_rate'],
                      self.tf_vars['td_target']: td_target_batch}
 
         source_batch = super().fix_batch_form(minibatch['source'], is_batch)
@@ -369,3 +377,22 @@ class EpsilonGreedyDQN(DQN):
 
     def get_random_action(self):
         return super().random_action(), True
+
+    # ==================================================================================================================
+
+    def get_uncertainty(self, obs):
+        if self.config['dqn_dropout']:
+            if self.config['env_type'] == ALE:
+                obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
+
+            obs_batch = [obs.astype(dtype=np.float32)] * self.config['dqn_dropout_uc_ensembles']
+            feed_dict = {self.tf_vars['obs']: obs_batch,
+                         self.tf_vars['dropout_rate']: self.config['dqn_dropout_rate']}
+
+            # TODO: Check how sensible the variance of Q-values are
+            q_values = np.asarray(self.session.run(self.tf_vars['q_values'], feed_dict=feed_dict))
+            q_values_vars = np.var(q_values, axis=0)
+
+            return np.mean(q_values_vars)
+        else:
+            return 0.0

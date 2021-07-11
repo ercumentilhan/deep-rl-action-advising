@@ -23,7 +23,6 @@ class DQN(object):
         self.config['preserve_initial_demonstrations_dataset'] = config['preserve_initial_demonstrations_dataset']
         self.config['use_lfd_loss'] = config['use_lfd_loss']
 
-
         dqn_config_params = [
             'dqn_gamma',
             'dqn_rm_type',
@@ -43,6 +42,9 @@ class DQN(object):
             'dqn_lm_loss_weight',
             'dqn_l2_loss_weight',
             'dqn_lm_loss_margin',
+            'dqn_dropout',
+            'dqn_dropout_rate',
+            'dqn_dropout_uc_ensembles',
         ]
         for param in dqn_config_params:
             self.config[param] = config[param]
@@ -79,6 +81,8 @@ class DQN(object):
         self.replay_memory = None
         self.per_beta = None
         self.per_beta_inc = None
+
+        self.tf_vars['dropout_rate'] = None
 
     # ==================================================================================================================
 
@@ -188,28 +192,39 @@ class DQN(object):
 
     def dense_layers(self, scope, inputs, is_dueling, hidden_size, output_size, head_id):
         with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
-            layer_1 = tf.compat.v1.layers.dense(inputs, hidden_size, use_bias=True,
+
+            if self.config['dqn_dropout'] and self.config['env_obs_form'] == SPATIAL:
+                layer_1_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_1', rate=self.tf_vars['dropout_rate'])
+            else:
+                layer_1_in = inputs
+
+            layer_1 = tf.compat.v1.layers.dense(layer_1_in, hidden_size, use_bias=True,
                                                 kernel_initializer=tf.keras.initializers.VarianceScaling(),
                                                 activation=tf.nn.relu, name='DENSE_LAYER_' + str(head_id) + '_1')
 
+            if self.config['dqn_dropout']:
+                layer_2_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_2', rate=self.tf_vars['dropout_rate'])
+            else:
+                layer_2_in = layer_1
+
             if is_dueling:
-                layer_2_adv = tf.compat.v1.layers.dense(layer_1, output_size, use_bias=True,
+                layer_2_adv = tf.compat.v1.layers.dense(layer_2_in, output_size, use_bias=True,
                                                         kernel_initializer=tf.keras.initializers.VarianceScaling(),
                                                         activation=None, name='DENSE_LAYER_' + str(head_id) + '_2_ADV')
 
-                layer_2_val = tf.compat.v1.layers.dense(layer_1, 1, use_bias=True,
+                layer_2_val = tf.compat.v1.layers.dense(layer_2_in, 1, use_bias=True,
                                                         kernel_initializer=tf.keras.initializers.VarianceScaling(),
                                                         activation=None, name='DENSE_LAYER_' + str(head_id) + '_2_VAL')
 
                 advantage = (layer_2_adv - tf.compat.v1.reduce_mean(layer_2_adv, axis=-1, keepdims=True))
                 value = tf.compat.v1.tile(layer_2_val, [1, output_size])
-                return advantage + value, layer_1
+                return advantage + value, layer_2_in
 
             else:
-                layer_2 = tf.compat.v1.layers.dense(layer_1, output_size, use_bias=True,
+                layer_2 = tf.compat.v1.layers.dense(layer_2_in, output_size, use_bias=True,
                                                     kernel_initializer=tf.keras.initializers.VarianceScaling(),
                                                     activation=None, name='DENSE_LAYER_' + str(head_id) + '_2')
-                return layer_2, layer_1
+                return layer_2, layer_2_in
 
     # ==================================================================================================================
 
