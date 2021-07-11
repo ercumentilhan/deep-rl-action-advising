@@ -34,8 +34,11 @@ def generate_config():
     config[0]['dqn-huber-loss-delta'] = 1.0
     config[0]['dqn-hidden-size'] = 512
 
-    config[1]['dump-replay-memory'] = False
+    config[1]['dqn-dropout'] = False
+    config[0]['dqn-dropout-rate'] = 0.2
+    config[0]['dqn-dropout-uc-ensembles'] = int(100)
 
+    config[1]['dump-replay-memory'] = False
     config[1]['use-gpu'] = False
     config[1]['save-models'] = False
     config[0]['model-save-period'] = int(50e3)
