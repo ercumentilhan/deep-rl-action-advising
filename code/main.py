@@ -55,6 +55,10 @@ if __name__ == '__main__':
     parser.add_argument('--dqn-huber-loss-delta', type=float, default=1.0)
     parser.add_argument('--dqn-hidden-size', type=int, default=512)
 
+    parser.add_argument('--dqn-dropout', action='store_true', default=False)
+    parser.add_argument('--dqn-dropout-rate', type=float, default=0.2)
+    parser.add_argument('--dqn-dropout-uc-ensembles', type=int, default=100)
+
     parser.add_argument('--dump-replay-memory', action='store_true', default=False)
 
     parser.add_argument('--use-gpu', action='store_true', default=False)
