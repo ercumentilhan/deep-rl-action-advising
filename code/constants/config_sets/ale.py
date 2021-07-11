@@ -135,6 +135,15 @@ id = 1000
 CONFIG_SETS[id] = generate_config()
 
 # ----------------------------------------------------------------------------------------------------------------------
+# NA: No Advising (Training from scratch) with Dropout
+
+id = 1010
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['dqn-dropout'] = True
+CONFIG_SETS[id][0]['dqn-dropout-rate'] = 0.2
+CONFIG_SETS[id][0]['dqn-dropout-uc-ensembles'] = int(100)
+
+# ----------------------------------------------------------------------------------------------------------------------
 # EA: Early Advising
 
 id = 2000
