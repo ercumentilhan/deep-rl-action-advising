@@ -153,6 +153,18 @@ CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
 CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
 
 # ----------------------------------------------------------------------------------------------------------------------
+# EA: Early Advising + Dropout
+
+id = 2010
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
+CONFIG_SETS[id][1]['dqn-dropout'] = True
+CONFIG_SETS[id][0]['dqn-dropout-rate'] = 0.2
+CONFIG_SETS[id][0]['dqn-dropout-uc-ensembles'] = int(100)
+
+# ----------------------------------------------------------------------------------------------------------------------
 # RA: Random Advising
 
 id = 2100
