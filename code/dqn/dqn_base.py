@@ -193,10 +193,11 @@ class DQN(object):
     def dense_layers(self, scope, inputs, is_dueling, hidden_size, output_size, head_id):
         with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
 
-            if self.config['dqn_dropout'] and self.config['env_obs_form'] == SPATIAL:
-                layer_1_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_1', rate=self.tf_vars['dropout_rate'])
-            else:
-                layer_1_in = inputs
+            # TODO: Make selectable
+            #if self.config['dqn_dropout'] and self.config['env_obs_form'] == SPATIAL:
+            #    layer_1_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_1', rate=self.tf_vars['dropout_rate'])
+            #else:
+            layer_1_in = inputs
 
             layer_1 = tf.compat.v1.layers.dense(layer_1_in, hidden_size, use_bias=True,
                                                 kernel_initializer=tf.keras.initializers.VarianceScaling(),
