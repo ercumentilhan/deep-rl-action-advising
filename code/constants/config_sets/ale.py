@@ -135,7 +135,7 @@ id = 1000
 CONFIG_SETS[id] = generate_config()
 
 # ----------------------------------------------------------------------------------------------------------------------
-# NA: No Advising (Training from scratch) with Dropout
+# NA: No Advising (Training from scratch) + Dropout
 
 id = 1010
 CONFIG_SETS[id] = generate_config()
@@ -214,6 +214,29 @@ CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
 CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
 CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
 CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+
+# ----------------------------------------------------------------------------------------------------------------------
+# AR+A+E: AR+A is enhanced with the unrestricted reuse procedure + Dropout
+
+id = 7010
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
+CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
+CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
+CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+CONFIG_SETS[id][1]['autoset-advice-uncertainty-threshold'] = True
+CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+CONFIG_SETS[id][1]['dqn-dropout'] = True
+CONFIG_SETS[id][0]['dqn-dropout-rate'] = 0.2
+CONFIG_SETS[id][0]['dqn-dropout-uc-ensembles'] = int(100)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AIR: AR+A+E is enhanced with the uncertainty-based advice collection
