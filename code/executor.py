@@ -296,7 +296,11 @@ class Executor:
             self.config['teacher_id'] = teacher_info[0]
 
             # Teacher is assumed to be generated with epsilon greedy model
-            self.teacher_agent = EpsilonGreedyDQN(self.config['teacher_id'], self.config, self.session,
+            import copy
+            teacher_config = copy.deepcopy(self.config)
+            teacher_config['dqn_type'] = 'egreedy'
+            teacher_config['dqn_dropout'] = False
+            self.teacher_agent = EpsilonGreedyDQN(self.config['teacher_id'], teacher_config, self.session,
                                                              eps_start=0.0, eps_final=0.0, eps_steps=1,
                                                              stats=self.stats,
                                                              demonstrations_datasets=())
