@@ -6,8 +6,10 @@ from dqn.dqn_base import DQN
 from constants.general import *
 
 class EpsilonGreedyDQN(DQN):
-    def __init__(self, id, config, session, eps_start, eps_final, eps_steps, stats, demonstrations_datasets):
-        super(EpsilonGreedyDQN, self).__init__(id, config, session, stats, demonstrations_datasets)
+    def __init__(self, id, config, session, eps_start, eps_final, eps_steps, stats, demonstrations_datasets,
+                 network_naming_structure_v1=False):
+        super(EpsilonGreedyDQN, self).__init__(id, config, session, stats, demonstrations_datasets,
+                                               network_naming_structure_v1)
 
         self.type = 'egreedy'
 
@@ -25,11 +27,15 @@ class EpsilonGreedyDQN(DQN):
         self.tf_vars['dropout_rate'] = tf.compat.v1.placeholder(tf.float32, shape=(), name='DROPOUT_RATE')
 
         self.tf_vars['pre_fc_features'], self.tf_vars['mid_fc_features'], self.tf_vars['q_values'] = \
-            self.build_network(self.name_online, self.tf_vars['obs'], True, self.config['dqn_hidden_size'],
+            self.build_network(self.name_online, self.tf_vars['obs'], self.config['dqn_dueling'],
+                               self.config['dqn_n_hidden_layers'],
+                               self.config['dqn_hidden_size_1'], self.config['dqn_hidden_size_2'],
                                self.config['env_n_actions'])
 
         self.tf_vars['pre_fc_features_tar'], self.tf_vars['mid_fc_features_tar'], self.tf_vars['q_values_tar'] = \
-            self.build_network(self.name_target, self.tf_vars['obs_tar'], True, self.config['dqn_hidden_size'],
+            self.build_network(self.name_target, self.tf_vars['obs_tar'], self.config['dqn_dueling'],
+                               self.config['dqn_n_hidden_layers'],
+                               self.config['dqn_hidden_size_1'], self.config['dqn_hidden_size_2'],
                                self.config['env_n_actions'])
 
         self.update_target_weights = super().build_copy_ops()
@@ -40,19 +46,31 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
-    def build_network(self, name, input, is_dueling, dense_hidden_size, output_size):
+    def build_network(self, name, input, is_dueling, n_hidden_layers, dense_hidden_size_1, dense_hidden_size_2,
+                      output_size):
+
         pre_fc_features = None
         if self.config['env_obs_form'] == NONSPATIAL:
             pre_fc_features = input
         elif self.config['env_obs_form'] == SPATIAL:
             pre_fc_features = super().conv_layers(name, input)
 
-        q_values, mid_fc_features = super().dense_layers(name,
-                                                         inputs=pre_fc_features,
-                                                         is_dueling=is_dueling,
-                                                         hidden_size=dense_hidden_size,
-                                                         output_size=output_size,
-                                                         head_id=1)
+        if self.network_naming_structure_v1:
+            q_values, mid_fc_features = super().dense_layers_v1(name,
+                                                             inputs=pre_fc_features,
+                                                             is_dueling=is_dueling,
+                                                             hidden_size=dense_hidden_size_1,
+                                                             output_size=output_size,
+                                                             head_id=1)
+        else:
+            q_values, mid_fc_features = super().dense_layers(name,
+                                                             inputs=pre_fc_features,
+                                                             is_dueling=is_dueling,
+                                                             hidden_number=n_hidden_layers,
+                                                             hidden_size_1=dense_hidden_size_1,
+                                                             hidden_size_2=dense_hidden_size_2,
+                                                             output_size=output_size,
+                                                             head_id=1)
 
         return pre_fc_features, mid_fc_features, q_values
 

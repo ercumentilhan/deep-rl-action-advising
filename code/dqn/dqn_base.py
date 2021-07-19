@@ -6,8 +6,9 @@ from noisy_dense import noisy_dense
 
 from constants.general import *
 
+
 class DQN(object):
-    def __init__(self, id, config, session, stats, demonstrations_datasets):
+    def __init__(self, id, config, session, stats, demonstrations_datasets, network_naming_structure_v1=False):
 
         # Extract relevant configuration:
         self.config = {}
@@ -37,7 +38,10 @@ class DQN(object):
             'dqn_train_period',
             'dqn_adam_eps',
             'dqn_huber_loss_delta',
-            'dqn_hidden_size',
+            'dqn_n_hidden_layers',
+            'dqn_hidden_size_1',
+            'dqn_hidden_size_2',
+            'dqn_dueling',
             'dqn_ql_loss_weight',
             'dqn_lm_loss_weight',
             'dqn_l2_loss_weight',
@@ -53,6 +57,7 @@ class DQN(object):
         self.session = session
         self.stats = stats
         self.demonstrations_datasets = demonstrations_datasets
+        self.network_naming_structure_v1 = network_naming_structure_v1
 
         # Scoped names
         self.name_online = self.id + '/' + 'ONLINE'
@@ -74,7 +79,7 @@ class DQN(object):
         print('# of training frames:', self.config['n_training_frames'])
 
         self.total_optimiser_steps = max(0, (self.config['n_training_frames'] - self.config['dqn_rm_init']) \
-                                     / self.config['dqn_train_period'])
+                                         / self.config['dqn_train_period'])
 
         print('# of optimiser steps:', self.total_optimiser_steps)
 
@@ -145,13 +150,13 @@ class DQN(object):
                 self.config['env_type'] == MINATAR:
             with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
                 layer_1 = tf.compat.v1.layers.conv2d(inputs=inputs,
-                                           filters=16,
-                                           kernel_size=(3, 3),
-                                           strides=(1, 1),
-                                           padding='VALID',
-                                           kernel_initializer=tf.keras.initializers.VarianceScaling(),
-                                           activation=tf.nn.relu,
-                                           name='CONV_LAYER_1')
+                                                     filters=16,
+                                                     kernel_size=(3, 3),
+                                                     strides=(1, 1),
+                                                     padding='VALID',
+                                                     kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                     activation=tf.nn.relu,
+                                                     name='CONV_LAYER_1')
 
                 output = tf.compat.v1.layers.flatten(layer_1)
                 return output
@@ -190,24 +195,73 @@ class DQN(object):
 
     # ==================================================================================================================
 
-    def dense_layers(self, scope, inputs, is_dueling, hidden_size, output_size, head_id):
+    def dense_layers(self, scope, inputs, is_dueling, hidden_number, hidden_size_1, hidden_size_2, output_size, head_id):
+
+        hidden_sizes = (hidden_size_1, hidden_size_2)
+
         with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
 
             # TODO: Make selectable
-            #if self.config['dqn_dropout'] and self.config['env_obs_form'] == SPATIAL:
+            # if self.config['dqn_dropout'] and self.config['env_obs_form'] == SPATIAL:
             #    layer_1_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_1', rate=self.tf_vars['dropout_rate'])
-            #else:
+            # else:
             layer_1_in = inputs
 
+            hidden_layers = []
+            for i in range(hidden_number):
+                if i == 0:
+                    hidden_layer_in = layer_1_in
+                else:
+                    if self.config['dqn_dropout']:
+                        hidden_layer_in = tf.compat.v1.nn.dropout(hidden_layers[-1], name='DROPOUT_LAYER_' + str(i + 1),
+                                                                  rate=self.tf_vars['dropout_rate'])
+                    else:
+                        hidden_layer_in = hidden_layers[-1]
+
+                hidden_layers.append(tf.compat.v1.layers.dense(hidden_layer_in, hidden_sizes[i], use_bias=True,
+                                                               kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                               activation=tf.nn.relu,
+                                                               name='DENSE_LAYER_' + str(head_id) + '_' + str(i + 1)))
+
+            if self.config['dqn_dropout']:
+                layer_final_in = tf.compat.v1.nn.dropout(hidden_layers[-1], name='DROPOUT_LAYER_FINAL',
+                                                         rate=self.tf_vars['dropout_rate'])
+            else:
+                layer_final_in = hidden_layers[-1]
+
+            if is_dueling:
+                layer_final_adv = tf.compat.v1.layers.dense(layer_final_in, output_size, use_bias=True,
+                                                            kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                            activation=None,
+                                                            name='DENSE_LAYER_' + str(head_id) + '_FINAL_ADV')
+
+                layer_final_val = tf.compat.v1.layers.dense(layer_final_in, 1, use_bias=True,
+                                                            kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                            activation=None,
+                                                            name='DENSE_LAYER_' + str(head_id) + '_FINAL_VAL')
+
+                advantage = (layer_final_adv - tf.compat.v1.reduce_mean(layer_final_adv, axis=-1, keepdims=True))
+                value = tf.compat.v1.tile(layer_final_val, [1, output_size])
+                return advantage + value, layer_final_in
+
+            else:
+                layer_final = tf.compat.v1.layers.dense(layer_final_in, output_size, use_bias=True,
+                                                        kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                        activation=None, name='DENSE_LAYER_' + str(head_id) + '_FINAL')
+                return layer_final, layer_final_in
+
+    # ==================================================================================================================
+    # Old dense layers function to use for previously saved teacher models with old network naming structure
+
+    def dense_layers_v1(self, scope, inputs, is_dueling, hidden_size, output_size, head_id):
+        with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
+
+            layer_1_in = inputs
             layer_1 = tf.compat.v1.layers.dense(layer_1_in, hidden_size, use_bias=True,
                                                 kernel_initializer=tf.keras.initializers.VarianceScaling(),
                                                 activation=tf.nn.relu, name='DENSE_LAYER_' + str(head_id) + '_1')
 
-            if self.config['dqn_dropout']:
-                layer_2_in = tf.compat.v1.nn.dropout(inputs, name='DROPOUT_LAYER_2', rate=self.tf_vars['dropout_rate'])
-            else:
-                layer_2_in = layer_1
-
+            layer_2_in = layer_1
             if is_dueling:
                 layer_2_adv = tf.compat.v1.layers.dense(layer_2_in, output_size, use_bias=True,
                                                         kernel_initializer=tf.keras.initializers.VarianceScaling(),

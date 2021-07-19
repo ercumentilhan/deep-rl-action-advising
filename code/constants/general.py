@@ -12,7 +12,7 @@ SPATIAL = 1
 # Time limit
 GRIDWORLD_TIMELIMIT = 100
 ALE_TIMELIMIT = 27000
-BOX2D_TIMELIMIT = 500
+BOX2D_TIMELIMIT = 1000
 MINATAR_TIMELIMIT = 1000
 MAPE_TIMELIMIT = 100
 
@@ -106,19 +106,19 @@ ENV_INFO = {
 
 
 # Teacher Models (to load previously saved models as teachers):
-# <Game Name>: (<Model directory>, <Model subdirectory (seed)>, <Checkpoint (timesteps)>)
+# <Game Name>: (<Model directory>, <Model subdirectory (seed)>, <Checkpoint (timesteps)>), Network Structure (Type)
 
 # Example: ALE24V0_EG_000_20201105-130625/0/model-6000000.ckpt will be loaded from "checkpoints" folder when the game
 # is Enduro
 
 TEACHER = {
-    'ALE-Enduro': ('ALE24V0_EG_000_20201105-130625', '0', 6000e3),
-    'ALE-Freeway': ('ALE26V0_EG_000_20201105-172634', '0', 3000e3),
-    'ALE-Pong': ('ALE43V0_EG_000_20201106-011948', '0', 5800e3),
-    'ALE-Qbert': ('ALE46V0_EG_000_20201023-120616', '0', 7000e3),
-    'ALE-Seaquest': ('ALE50V0_EG_000_20201019-132350', '0', 7000e3),
-
-    'BOX2D-LunarLander': ('BOX2D00_000_174_20210527-180912', '100', 2000e3)
+    'ALE-Enduro': ('ALE24V0_EG_000_20201105-130625', '0', 6000e3, 0),
+    'ALE-Freeway': ('ALE26V0_EG_000_20201105-172634', '0', 3000e3, 0),
+    'ALE-Pong': ('ALE43V0_EG_000_20201106-011948', '0', 5800e3, 0),
+    'ALE-Qbert': ('ALE46V0_EG_000_20201023-120616', '0', 7000e3, 0),
+    'ALE-Seaquest': ('ALE50V0_EG_000_20201019-132350', '0', 7000e3, 0),
+    # 'BOX2D-LunarLander': ('BOX2D00_000_174_20210527-180912', '100', 2000e3, 0),
+    'BOX2D-LunarLander': ('BOX2D00_000_941_20210718-001159', '103', 400e3, 1)
 }
 
 DEMONSTRATIONS_DATASET = {

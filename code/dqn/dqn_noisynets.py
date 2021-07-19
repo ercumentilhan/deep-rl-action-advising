@@ -9,8 +9,9 @@ from constants.general import *
 
 
 class NoisyNetsDQN(DQN):
-    def __init__(self, id, config, session, stats, demonstrations_datasets):
-        super(NoisyNetsDQN, self).__init__(id, config, session, stats, demonstrations_datasets)
+    def __init__(self, id, config, session, stats, demonstrations_datasets, network_naming_structure_v1 = False):
+        super(NoisyNetsDQN, self).__init__(id, config, session, stats, demonstrations_datasets,
+                                           network_naming_structure_v1)
 
         self.type = 'noisy'
 
@@ -23,13 +24,15 @@ class NoisyNetsDQN(DQN):
 
         self.tf_vars['pre_fc_features'], self.tf_vars['mid_fc_features'], self.tf_vars['q_values'], \
         self.tf_vars['pred_var'] = \
-            self.build_network(self.name_online, self.tf_vars['obs'], True, self.config['dqn_hidden_size'],
+            self.build_network(self.name_online, self.tf_vars['obs'], self.config['dqn_dueling'],
+                               self.config['dqn_hidden_size'],
                                self.config['env_n_actions'],
                                self.tf_vars['evaluation'])
 
         self.tf_vars['pre_fc_features_tar'], self.tf_vars['mid_fc_features_tar'], \
         self.tf_vars['q_values_tar'], self.tf_vars['pred_var_tar'] = \
-            self.build_network(self.name_target, self.tf_vars['obs_tar'], True, self.config['dqn_hidden_size'],
+            self.build_network(self.name_target, self.tf_vars['obs_tar'], self.config['dqn_dueling'],
+                               self.config['dqn_hidden_size'],
                                self.config['env_n_actions'],
                                self.tf_vars['evaluation_tar'])
 

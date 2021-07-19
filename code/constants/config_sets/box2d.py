@@ -5,8 +5,8 @@ def generate_config():
     config[0]['process-index'] = 0
     config[0]['machine-name'] = 'NONE'
     config[0]['n-training-frames'] = int(500e3)
-    config[0]['n-evaluation-trials'] = 10
-    config[0]['evaluation-period'] = int(10e3)
+    config[0]['n-evaluation-trials'] = 20
+    config[0]['evaluation-period'] = int(5e3)
 
     config[1]['visualize-videos'] = False
     config[0]['evaluation-visualization-period'] = 5
@@ -17,22 +17,25 @@ def generate_config():
     config[0]['dqn-type'] = 'egreedy'  # 'egreedy', 'noisy'
     config[0]['dqn-gamma'] = 0.99
     config[0]['dqn-rm-type'] = 'uniform'  # 'uniform', 'per'
-    config[0]['dqn-rm-init'] = int(10e3)
+    config[0]['dqn-rm-init'] = int(20e3)
     config[0]['dqn-rm-max'] = int(100e3)
     config[0]['dqn-per-alpha'] = 0.4
     config[0]['dqn-per-beta'] = 0.6
     config[1]['dqn-per-ims'] = True
-    config[0]['dqn-target-update'] = 2500
-    config[0]['dqn-batch-size'] = 32
-    config[0]['dqn-learning-rate'] = 0.0001 # 0.0000625
+    config[0]['dqn-target-update'] = 500
+    config[0]['dqn-batch-size'] = 64
+    config[0]['dqn-learning-rate'] = 0.001
     config[0]['dqn-train-per-step'] = 1
-    config[0]['dqn-train-period'] = 2
+    config[0]['dqn-train-period'] = 1
     config[0]['dqn-adam-eps'] = 0.00015
     config[0]['dqn-eps-start'] = 1.0
     config[0]['dqn-eps-final'] = 0.01
     config[0]['dqn-eps-steps'] = int(100e3)
     config[0]['dqn-huber-loss-delta'] = 1.0
-    config[0]['dqn-hidden-size'] = 512
+    config[0]['dqn-n-hidden-layers'] = 2
+    config[0]['dqn-hidden-size-1'] = 128
+    config[0]['dqn-hidden-size-2'] = 128
+    config[1]['dqn-dueling'] = True
 
     config[1]['dqn-dropout'] = False
     config[0]['dqn-dropout-rate'] = 0.2
@@ -108,7 +111,7 @@ CONFIG_SETS = {}
 id = 0
 CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['save-models'] = True
-CONFIG_SETS[id][0]['n-training-frames'] = int(2e6)
+CONFIG_SETS[id][0]['n-training-frames'] = int(1e6)
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Evaluate teacher (with a single evaluation step)
@@ -123,8 +126,13 @@ CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
 
 # ----------------------------------------------------------------------------------------------------------------------
 # NA: No Advising (Training from scratch)
+
 id = 1000
 CONFIG_SETS[id] = generate_config()
+
+id = 1010
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['dqn-dropout'] = True
 
 # ----------------------------------------------------------------------------------------------------------------------
 # EA: Early Advising
@@ -135,6 +143,13 @@ CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
 CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
 
+id = 2010
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
+CONFIG_SETS[id][1]['dqn-dropout'] = True
+
 # ----------------------------------------------------------------------------------------------------------------------
 # RA: Random Advising
 
@@ -143,6 +158,13 @@ CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['load-teacher'] = True
 CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
 CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
+
+id = 2100
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
+CONFIG_SETS[id][1]['dqn-dropout'] = True
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR: Advice Reuse
@@ -240,5 +262,24 @@ CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
 CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(50e3)
 CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(250e3)
 CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+
+id = 8010
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['load-teacher'] = True
+CONFIG_SETS[id][0]['advice-collection-method'] = 'uncertainty_based'
+CONFIG_SETS[id][0]['advice-collection-budget'] = int(BOX2D_AA_BUDGET)
+CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e3)
+CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(50)
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(100e3)
+CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(25e3)
+CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+CONFIG_SETS[id][1]['autoset-advice-uncertainty-threshold'] = True
+CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(50e3)
+CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(250e3)
+CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+CONFIG_SETS[id][1]['dqn-dropout'] = True
 
 # ----------------------------------------------------------------------------------------------------------------------

@@ -53,7 +53,10 @@ if __name__ == '__main__':
     parser.add_argument('--dqn-eps-final', type=float, default=0.01)
     parser.add_argument('--dqn-eps-steps', type=int, default=250000)
     parser.add_argument('--dqn-huber-loss-delta', type=float, default=1.0)
-    parser.add_argument('--dqn-hidden-size', type=int, default=512)
+    parser.add_argument('--dqn-n-hidden-layers', type=int, default=1)
+    parser.add_argument('--dqn-hidden-size-1', type=int, default=512)
+    parser.add_argument('--dqn-hidden-size-2', type=int, default=64)
+    parser.add_argument('--dqn-dueling', action='store_true', default=False)
 
     parser.add_argument('--dqn-dropout', action='store_true', default=False)
     parser.add_argument('--dqn-dropout-rate', type=float, default=0.2)
