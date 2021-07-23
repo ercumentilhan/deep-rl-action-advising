@@ -41,7 +41,7 @@ def generate_config():
     config[0]['dqn-dropout-rate'] = 0.2
     config[0]['dqn-dropout-uc-ensembles'] = int(100)
 
-    # Twin DQN is to be  supervised trained with the original DQNs samples and targets - has dropout enabled by default
+    # Twin DQN is to be supervised trained with the original DQNs samples and targets - has dropout enabled by default
     # for uncertainty estimations
     config[1]['dqn-twin'] = False
     config[0]['dqn-twin-dropout-rate'] = 0.2
