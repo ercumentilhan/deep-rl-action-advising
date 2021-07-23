@@ -62,6 +62,16 @@ if __name__ == '__main__':
     parser.add_argument('--dqn-dropout-rate', type=float, default=0.2)
     parser.add_argument('--dqn-dropout-uc-ensembles', type=int, default=100)
 
+    parser.add_argument('--dqn-twin', action='store_true', default=False)
+    parser.add_argument('--dqn-twin-dropout-rate', type=float, default=0.2)
+    parser.add_argument('--dqn-twin-dropout-uc-ensembles', type=int, default=100)
+    parser.add_argument('--dqn-twin-learning-rate', type=float, default=0.0000625)
+    parser.add_argument('--dqn-twin-adam-eps', type=float, default=0.00015)
+    parser.add_argument('--dqn-twin-huber-loss-delta', type=float, default=1.0)
+    parser.add_argument('--dqn-twin-n-hidden-layers', type=int, default=1)
+    parser.add_argument('--dqn-twin-hidden-size-1', type=int, default=512)
+    parser.add_argument('--dqn-twin-hidden-size-2', type=int, default=64)
+
     parser.add_argument('--dump-replay-memory', action='store_true', default=False)
 
     parser.add_argument('--use-gpu', action='store_true', default=False)
@@ -108,6 +118,7 @@ if __name__ == '__main__':
     parser.add_argument('--bc-dropout-rate', type=float, default=0.35)
     parser.add_argument('--bc-hidden-size', type=int, default=512)
     parser.add_argument('--bc-uc-ensembles', type=int, default=100)
+    parser.add_argument('--bc-use-softmax', action='store_true', default=False)
 
     # Reuse
     parser.add_argument('--advice-reuse-method', type=str, default='none')  # 'none', 'random', 'episodic_random'

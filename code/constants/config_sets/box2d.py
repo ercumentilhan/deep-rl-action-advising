@@ -41,6 +41,18 @@ def generate_config():
     config[0]['dqn-dropout-rate'] = 0.2
     config[0]['dqn-dropout-uc-ensembles'] = int(100)
 
+    # Twin DQN is to be  supervised trained with the original DQNs samples and targets - has dropout enabled by default
+    # for uncertainty estimations
+    config[1]['dqn-twin'] = False
+    config[0]['dqn-twin-dropout-rate'] = 0.2
+    config[0]['dqn-twin-dropout-uc-ensembles'] = int(100)
+    config[0]['dqn-twin-learning-rate'] = 0.001
+    config[0]['dqn-twin-adam-eps'] = 0.00015
+    config[0]['dqn-twin-huber-loss-delta'] = 1.0
+    config[0]['dqn-twin-n-hidden-layers'] = 2
+    config[0]['dqn-twin-hidden-size-1'] = 128
+    config[0]['dqn-twin-hidden-size-2'] = 128
+
     config[1]['dump-replay-memory'] = False
     config[1]['use-gpu'] = False
     config[1]['save-models'] = False

@@ -45,6 +45,18 @@ def generate_config():
     config[0]['dqn-dropout-rate'] = 0.2
     config[0]['dqn-dropout-uc-ensembles'] = int(100)
 
+    # Twin DQN is to be  supervised trained with the original DQNs samples and targets - has dropout enabled by default
+    # for uncertainty estimations
+    config[1]['dqn-twin'] = False
+    config[0]['dqn-twin-dropout-rate'] = 0.2
+    config[0]['dqn-twin-dropout-uc-ensembles'] = int(100)
+    config[0]['dqn-twin-learning-rate'] = 0.0000625
+    config[0]['dqn-twin-adam-eps'] = 0.00015
+    config[0]['dqn-twin-huber-loss-delta'] = 1.0
+    config[0]['dqn-twin-n-hidden-layers'] = 1
+    config[0]['dqn-twin-hidden-size-1'] = 512
+    config[0]['dqn-twin-hidden-size-2'] = 0
+
     config[1]['dump-replay-memory'] = False
     config[1]['use-gpu'] = True
     config[1]['save-models'] = False
@@ -145,6 +157,13 @@ CONFIG_SETS[id] = generate_config()
 CONFIG_SETS[id][1]['dqn-dropout'] = True
 CONFIG_SETS[id][0]['dqn-dropout-rate'] = 0.2
 CONFIG_SETS[id][0]['dqn-dropout-uc-ensembles'] = int(100)
+
+# ----------------------------------------------------------------------------------------------------------------------
+# NA: No Advising (Training from scratch) + Twin DQN for Uncertainty
+
+id = 1020
+CONFIG_SETS[id] = generate_config()
+CONFIG_SETS[id][1]['dqn-twin'] = True
 
 # ----------------------------------------------------------------------------------------------------------------------
 # EA: Early Advising
