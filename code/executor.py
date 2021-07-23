@@ -681,7 +681,7 @@ class Executor:
                 self.steps_reward_real = 0.0
 
             if self.stats.n_env_steps % self.config['evaluation_period'] == 0:
-                evaluation_score = self.evaluate()
+                eval_score, eval_score_real = self.evaluate()
                 print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
 
             if self.config['save_models'] and \
