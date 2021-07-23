@@ -173,6 +173,9 @@ class EpsilonGreedyDQN(DQN):
 
         td_error_batch = [0.0]
 
+        feed_dict = None
+        is_batch = None
+
         perform_learning = self.replay_memory.__len__() >= self.config['dqn_rm_init']
 
         if force_learn or perform_learning:
@@ -184,8 +187,8 @@ class EpsilonGreedyDQN(DQN):
 
             if force_learn or self.post_init_steps % self.config['dqn_train_period'] == 0:
 
-                td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted\
-                    = self.train_model()
+                td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
+                feed_dict, is_batch = self.train_model()
 
                 if not force_learn:
                     self.stats.n_learning_steps_taken_in_period += 1
@@ -197,7 +200,8 @@ class EpsilonGreedyDQN(DQN):
                     if self.config['dqn_rm_type'] == 'per':
                         self.per_beta += self.per_beta_inc
 
-        return td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted
+        return td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
+               feed_dict, is_batch
 
     # ==================================================================================================================
 
@@ -235,15 +239,16 @@ class EpsilonGreedyDQN(DQN):
             minibatch['idxes'] = minibatch_[-1]
 
 
-        td_error, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted\
-            = self.get_grads_update(minibatch)
+        td_error, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
+        feed_dict, is_batch = self.get_grads_update(minibatch)
 
         prios = np.abs(td_error[:self.config['dqn_batch_size']]) + float(1e-6)
 
         if self.config['dqn_rm_type'] == 'per':
             self.replay_memory.update_priorities(minibatch['idxes'], prios)
 
-        return td_error, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted
+        return td_error, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
+               feed_dict, is_batch
 
     # ==================================================================================================================
 
@@ -269,21 +274,21 @@ class EpsilonGreedyDQN(DQN):
     # ==================================================================================================================
 
     def get_td_error(self, minibatch):
-        feed_dict, is_batch = self.arrange_feed_dict(minibatch)
+        feed_dict, is_batch, _ = self.arrange_feed_dict(minibatch)
         td_error_batch = self.session.run(self.tf_vars['td_error'], feed_dict=feed_dict)
         return td_error_batch if is_batch else td_error_batch[0]
 
     # ==================================================================================================================
 
     def get_loss(self, minibatch):
-        feed_dict, is_batch = self.arrange_feed_dict(minibatch)
+        feed_dict, is_batch, _ = self.arrange_feed_dict(minibatch)
         loss_batch = self.session.run(self.tf_vars['loss'], feed_dict=feed_dict)
         return loss_batch if is_batch else loss_batch[0]
 
     # ==================================================================================================================
 
     def get_grads_update(self, minibatch):
-        feed_dict, is_batch = self.arrange_feed_dict(minibatch)
+        feed_dict, is_batch, feed_dict_simple = self.arrange_feed_dict(minibatch)
 
         if self.config['use_lfd_loss']:
             td_error_batch, loss_batch, _, q_vals, \
@@ -312,7 +317,9 @@ class EpsilonGreedyDQN(DQN):
         return td_error_batch if is_batch else td_error_batch[0], loss_batch if is_batch else loss_batch[0], \
                loss_ql, loss_ql_weighted, \
                loss_lm, loss_lm_weighted, \
-               loss_l2, loss_l2_weighted
+               loss_l2, loss_l2_weighted, \
+               feed_dict_simple, is_batch
+
 
     # ==================================================================================================================
 
@@ -368,6 +375,12 @@ class EpsilonGreedyDQN(DQN):
                      self.tf_vars['dropout_rate']: self.config['dqn_dropout_rate'],
                      self.tf_vars['td_target']: td_target_batch}
 
+        feed_dict_simple = {
+            'obs': obs_batch,
+            'action': action_batch,
+            'td_target': td_target_batch,
+        }
+
         source_batch = super().fix_batch_form(minibatch['source'], is_batch)
         feed_dict[self.tf_vars['source']] = source_batch
 
@@ -375,7 +388,7 @@ class EpsilonGreedyDQN(DQN):
             ims_weights_batch = super().fix_batch_form(minibatch['weights'], is_batch)
             feed_dict[self.tf_vars['ims_weights']] = ims_weights_batch
 
-        return feed_dict, is_batch
+        return feed_dict, is_batch, feed_dict_simple
 
     # ==================================================================================================================
 
