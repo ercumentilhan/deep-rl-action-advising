@@ -26,8 +26,7 @@ plt.rcParams.update({'font.size': 14})
 import gym_video_recorder
 
 from behavioural_cloning.bc_base import BehaviouralCloning
-
-
+from dqn.dqn_twin import DQNTwin
 
 from constants.general import *
 
@@ -103,6 +102,8 @@ class Executor:
                 self.advice_reuse_probability_decay_steps
 
         self.advice_reuse_probability = self.config['advice_reuse_probability']
+
+        self.dqn_twin = None
 
     # ==================================================================================================================
 
@@ -320,6 +321,10 @@ class Executor:
                         self.bc_model.feedback_observe(data[0], data[1])
 
                 print('Loaded {} samples into the behavioural cloner.'.format(self.bc_model.replay_memory.__len__()))
+
+        # --------------------------------------------------------------------------------------------------------------
+        if self.config['dqn_twin']:
+            self.dqn_twin = DQNTwin('DQN_TWIN', self.config, self.session, None)
 
         # --------------------------------------------------------------------------------------------------------------
         # Print the number of neural network parameters in the experiment setup
@@ -608,8 +613,14 @@ class Executor:
 
             # ----------------------------------------------------------------------------------------------------------
 
-            td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted \
-                = self.student_agent.feedback_learn()
+            td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
+            feed_dict, is_batch = self.student_agent.feedback_learn()
+
+            # Train the twin DQN if the original DQN has performed a learning step
+            if self.config['dqn_twin'] and feed_dict is not None:
+                self.dqn_twin.train_model_with_feed_dict(feed_dict, is_batch)
+
+            # ----------------------------------------------------------------------------------------------------------
 
             if self.config['advice_reuse_probability_decay'] and \
                     self.stats.n_env_steps > self.config['advice_reuse_probability_decay_begin'] and \
@@ -914,6 +925,20 @@ class Executor:
             cv2.imwrite(self.save_obs_real_images_path + '/' + str(t) + '.png', rendered_frame[:, :, ::-1])
             cv2.imwrite(self.save_obs_agent_images_path + '/' + str(t) + '.png', np.asarray(np.hstack((
             obs[0], black_line, obs[1], black_line, obs[2], black_line, obs[3]))))
+
+    # ==================================================================================================================
+    # Get uncertainty value by considering the available options
+
+    def get_student_uncertainty(self, obs):
+        if self.config['dqn_type'] == 'egreedy' and self.config['dqn_dropout']:
+            return self.student_agent.get_uncertainty(obs)
+        elif self.config['dqn_type'] == 'noisy':
+            return self.student_agent.get_uncertainty(obs, True)
+        elif self.config['dqn_twin']:
+            uncertainty, _, _ = self.dqn_twin.get_uncertainty(obs)
+            return uncertainty
+        else:
+            return 0.
 
 # ======================================================================================================================
 
