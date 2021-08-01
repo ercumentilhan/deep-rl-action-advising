@@ -617,8 +617,9 @@ class Executor:
             feed_dict, is_batch = self.student_agent.feedback_learn()
 
             # Train the twin DQN if the original DQN has performed a learning step
+            loss_twin = 0.0
             if self.config['dqn_twin'] and feed_dict is not None:
-                self.dqn_twin.train_model_with_feed_dict(feed_dict, is_batch)
+                loss_twin = self.dqn_twin.train_model_with_feed_dict(feed_dict, is_batch)
 
             # ----------------------------------------------------------------------------------------------------------
 
@@ -630,6 +631,7 @@ class Executor:
                     self.advice_reuse_probability = self.config['advice_reuse_probability_final']
 
             self.stats.loss += loss
+            self.stats.loss_twin += loss_twin
 
             obs = obs_next
             done = done or self.episode_duration >= self.env_info['max_timesteps']
