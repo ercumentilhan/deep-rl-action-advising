@@ -26,6 +26,11 @@ class Statistics(object):
         self.loss_var = tf.compat.v1.Variable(0.0)
         self.loss_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
 
+        # Total loss (Twin)
+        self.loss_twin = 0.0
+        self.loss_twin_var = tf.compat.v1.Variable(0.0)
+        self.loss_twin_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
         self.epsilon = 0.0
         self.epsilon_var = tf.compat.v1.Variable(0.0)
         self.epsilon_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
@@ -180,6 +185,7 @@ class Statistics(object):
 
         self.assignments_steps = [
             self.loss_var.assign(self.loss_ph),
+            self.loss_twin_var.assign(self.loss_twin_ph),
 
             self.epsilon_var.assign(self.epsilon_ph),
             self.exploration_steps_taken_var.assign(self.exploration_steps_taken_ph),
@@ -232,6 +238,7 @@ class Statistics(object):
 
     def setup_summary_steps(self):
         loss_sc = tf.compat.v1.summary.scalar('Loss/Total', self.loss_var)
+        loss_twin_sc = tf.compat.v1.summary.scalar('Loss Twin/Total', self.loss_twin_var)
         epsilon_sc = tf.compat.v1.summary.scalar('Epsilon', self.epsilon_var)
 
         exploration_steps_taken_sc = tf.compat.v1.summary.scalar('Exploration Steps Taken',
@@ -262,6 +269,7 @@ class Statistics(object):
                                                                     self.advices_reused_correct_cum_var)
 
         to_be_merged = [loss_sc,
+                        loss_twin_sc,
                         epsilon_sc, advices_taken_sc, advices_taken_cumulative_sc, steps_reward_sc,
                         steps_reward_auc_sc, exploration_steps_taken_sc, exploration_steps_taken_cum_sc,
                         advices_used_sc, advices_used_cum_sc,
@@ -314,13 +322,16 @@ class Statistics(object):
 
         if self.n_learning_steps_taken_in_period == 0:
             self.loss = 0.0
+            self.loss_twin = 0.0
         else:
             self.loss /= self.n_learning_steps_taken_in_period
+            self.loss_twin /= self.n_learning_steps_taken_in_period
 
         requested_ops = [assignment for assignment in self.assignments_steps]
 
         feed_dict = {
             self.loss_ph: self.loss,
+            self.loss_twin_ph: self.loss_twin,
 
             self.epsilon_ph: self.epsilon,
             self.exploration_steps_taken_ph: self.exploration_steps_taken,
@@ -347,6 +358,7 @@ class Statistics(object):
         self.summary_writer.add_summary(summary, self.n_env_steps)
 
         self.loss = 0.0
+        self.loss_twin = 0.0
         self.n_learning_steps_taken_in_period = 0
 
     # ==================================================================================================================
