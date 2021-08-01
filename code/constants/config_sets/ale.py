@@ -21,7 +21,7 @@ def generate_config():
     config[0]['dqn-type'] = 'egreedy'  # 'egreedy', 'noisy'
     config[0]['dqn-gamma'] = 0.99
     config[0]['dqn-rm-type'] = 'uniform'
-    config[0]['dqn-rm-init'] = int(50e3)
+    config[0]['dqn-rm-init'] = int(10e3)
     config[0]['dqn-rm-max'] = int(500e3)
     config[0]['dqn-per-alpha'] = 0.4
     config[0]['dqn-per-beta'] = 0.6
