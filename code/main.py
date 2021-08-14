@@ -97,12 +97,19 @@ if __name__ == '__main__':
     parser.add_argument('--dqn-l2-loss-weight', type=float, default=1e-5)
     parser.add_argument('--dqn-lm-loss-margin', type=float, default=0.8)
 
-   # parser.add_argument('--keep-rm-empty-initially', action='store_true', default=False)
-
     # Collection
-    parser.add_argument('--advice-collection-method', type=str, default='none')
     parser.add_argument('--advice-collection-budget', type=int, default=0)
-    parser.add_argument('--advice-collection-uncertainty-threshold', type=float, default=0)
+    parser.add_argument('--advice-collection-method', type=str, default='none')
+
+    parser.add_argument('--student-model-uc-th', type=float, default=0)
+    parser.add_argument('--use-proportional-student-model-uc-th', action='store_true', default=False)
+    parser.add_argument('--proportional-student-model-uc-th-window-size', type=int, default=0)
+    parser.add_argument('--proportional-student-model-uc-th-window-size-min', type=int, default=0)
+    parser.add_argument('--proportional-student-model-uc-th-percentile', type=int, default=0)
+
+    parser.add_argument('--teacher-model-uc-th', type=float, default=0)
+    parser.add_argument('--autoset-teacher-model-uc-th', action='store_true', default=False)
+
     parser.add_argument('--preserve-collected-advice', action='store_true', default=False)
 
     # Imitation
@@ -123,13 +130,10 @@ if __name__ == '__main__':
     # Reuse
     parser.add_argument('--advice-reuse-method', type=str, default='none')  # 'none', 'random', 'episodic_random'
     parser.add_argument('--advice-reuse-probability', type=float, default=0)
-    parser.add_argument('--advice-reuse-uncertainty-threshold', type=float, default=0)
     parser.add_argument('--advice-reuse-probability-decay', action='store_true', default=False)
     parser.add_argument('--advice-reuse-probability-decay-begin', type=int, default=0)
     parser.add_argument('--advice-reuse-probability-decay-end', type=int, default=0)
     parser.add_argument('--advice-reuse-probability-final', type=float, default=0)
-
-    parser.add_argument('--autoset-advice-uncertainty-threshold', action='store_true', default=False)
 
     # ------------------------------------------------------------------------------------------------------------------
 
