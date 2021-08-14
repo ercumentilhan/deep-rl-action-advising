@@ -5,7 +5,7 @@ import random
 import numpy as np
 import pickle
 import cv2
-
+import collections
 import tensorflow as tf
 
 tf.compat.v1.disable_eager_execution()
@@ -104,6 +104,8 @@ class Executor:
         self.advice_reuse_probability = self.config['advice_reuse_probability']
 
         self.dqn_twin = None
+
+        self.student_model_uc_values_buffer = None
 
     # ==================================================================================================================
 
@@ -327,6 +329,12 @@ class Executor:
             self.dqn_twin = DQNTwin('DQN_TWIN', self.config, self.session, None)
 
         # --------------------------------------------------------------------------------------------------------------
+
+        if self.config['use_proportional_student_model_uc_th']:
+            self.student_model_uc_values_buffer = collections.deque(
+                maxlen=self.config['proportional_student_model_uc_th_window_size'])
+
+        # --------------------------------------------------------------------------------------------------------------
         # Print the number of neural network parameters in the experiment setup
 
         total_parameters = 0
@@ -429,10 +437,42 @@ class Executor:
                     if random.random() < 0.5:
                         advice_collection_occurred = True
 
-                elif self.config['advice_collection_method'] == 'uncertainty_based':
+                # Based on the "uncertainty" estimated by twin network
+                elif self.config['advice_collection_method'] == 'student_model_uc':
+
+                    # If student model hasn't started learning, then don't measure/record the uncertainty values
+                    # They will all be high and meaningless to compare between
+                    if self.student_agent.replay_memory.__len__() < self.config['dqn_rm_init']:
+                        advice_collection_occurred = True
+                    else:
+                        uc_value, _, _ = self.dqn_twin.get_uncertainty(obs)
+
+                        # (1) Adaptive threshold mode
+                        if self.config['use_proportional_student_model_uc_th']:
+                            # Always collect advice until the uc values buffer reach a minimum size
+                            if len(self.student_model_uc_values_buffer) < \
+                                    self.config['proportional_student_model_uc_th_window_size_min']:
+                                advice_collection_occurred = True
+                            else:
+                                sorted_values = sorted(self.student_model_uc_values_buffer)
+                                percentile_th = np.percentile(sorted_values,
+                                                          self.config['proportional_student_model_uc_th_percentile'])
+
+                                if uc_value > percentile_th:
+                                    advice_collection_occurred = True
+
+                            self.student_model_uc_values_buffer.append(uc_value)
+
+                        # (2) Constant threshold mode
+                        else:
+                            if uc_value > self.config['student_model_uc_th']:
+                                advice_collection_occurred = True
+
+
+                elif self.config['advice_collection_method'] == 'teacher_model_uc':
                     if self.initial_imitation_is_performed:
                         bc_uncertainty = self.bc_model.get_uncertainty(obs)
-                        if bc_uncertainty > self.config['advice_collection_uncertainty_threshold']:
+                        if bc_uncertainty > self.config['teacher_model_uc_th']:
                             advice_collection_occurred = True
                     else:
                         advice_collection_occurred = True
@@ -474,9 +514,8 @@ class Executor:
                         print('Self evaluating model...')
                         uc_threshold, accuracy = evaluate_behavioural_cloner(self.bc_model)
 
-                        if self.config['autoset_advice_uncertainty_threshold']:
-                            self.config['advice_reuse_uncertainty_threshold'] = uc_threshold
-                            self.config['advice_collection_uncertainty_threshold'] = uc_threshold
+                        if self.config['autoset_teacher_model_uc_th']:
+                            self.config['teacher_model_uc_th'] = uc_threshold
 
                         self.initial_imitation_is_performed = True
                         self.steps_since_imitation = 0
@@ -492,10 +531,9 @@ class Executor:
                         print('Self evaluating model...')
                         uc_threshold, accuracy = evaluate_behavioural_cloner(self.bc_model)
 
-                        if self.config['autoset_advice_uncertainty_threshold']:
+                        if self.config['autoset_teacher_model_uc_th']:
                             print('setting uc threshold:', uc_threshold)
-                            self.config['advice_reuse_uncertainty_threshold'] = uc_threshold
-                            self.config['advice_collection_uncertainty_threshold'] = uc_threshold
+                            self.config['teacher_model_uc_th'] = uc_threshold
 
                         self.steps_since_imitation = 0
                         self.samples_since_imitation = 0
@@ -513,7 +551,7 @@ class Executor:
 
                         if self.reuse_enabled:
                             bc_uncertainty = self.bc_model.get_uncertainty(obs)
-                            if bc_uncertainty < self.config['advice_reuse_uncertainty_threshold']:
+                            if bc_uncertainty < self.config['teacher_model_uc_th']:
                                 reuse_advice = True
 
             if reuse_advice:
