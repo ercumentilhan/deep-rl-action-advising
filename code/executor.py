@@ -425,10 +425,12 @@ class Executor:
             # ----------------------------------------------------------------------------------------------------------
             # Advice Collection
 
+            reuse_advice = False
             advice_collection_occurred = False
 
             if action is None and \
-                    self.config['advice_collection_method'] != 'none' and self.action_advising_budget > 0:
+                    self.config['advice_collection_method'] != 'none' and \
+                    (self.action_advising_budget > 0 or self.config['advice_collection_method'] == 'dual_uc'):
 
                 if self.config['advice_collection_method'] == 'early':
                     advice_collection_occurred = True
@@ -438,7 +440,8 @@ class Executor:
                         advice_collection_occurred = True
 
                 # Based on the "uncertainty" estimated by twin network
-                elif self.config['advice_collection_method'] == 'student_model_uc':
+                elif self.config['advice_collection_method'] == 'student_model_uc' or \
+                        self.config['advice_collection_method'] == 'dual_uc':
 
                     # If student model hasn't started learning, then don't measure/record the uncertainty values
                     # They will all be high and meaningless to compare between
@@ -446,6 +449,8 @@ class Executor:
                         advice_collection_occurred = True
                     else:
                         uc_value, _, _ = self.dqn_twin.get_uncertainty(obs)
+
+                        is_uncertain = False
 
                         # (1) Adaptive threshold mode
                         if self.config['use_proportional_student_model_uc_th']:
@@ -459,15 +464,27 @@ class Executor:
                                                           self.config['proportional_student_model_uc_th_percentile'])
 
                                 if uc_value > percentile_th:
-                                    advice_collection_occurred = True
+                                    is_uncertain = True
 
                             self.student_model_uc_values_buffer.append(uc_value)
 
                         # (2) Constant threshold mode
                         else:
                             if uc_value > self.config['student_model_uc_th']:
-                                advice_collection_occurred = True
+                                is_uncertain = True
 
+                        if is_uncertain:
+                            if self.config['advice_collection_method'] == 'dual_uc':
+                                if self.initial_imitation_is_performed:
+                                    bc_uncertainty = self.bc_model.get_uncertainty(obs)
+                                    if bc_uncertainty < self.config['teacher_model_uc_th']:
+                                        reuse_advice = True
+                                    elif self.action_advising_budget > 0:
+                                        advice_collection_occurred = True
+                                elif self.action_advising_budget > 0:
+                                    advice_collection_occurred = True
+                            else:
+                                advice_collection_occurred = True
 
                 elif self.config['advice_collection_method'] == 'teacher_model_uc':
                     if self.initial_imitation_is_performed:
@@ -541,8 +558,7 @@ class Executor:
             # ----------------------------------------------------------------------------------------------------------
 
             # Reuse
-            reuse_advice = False
-            if not advice_collection_occurred:
+            if not advice_collection_occurred and self.config['advice_collection_method'] != 'dual_uc':
                 if self.config['advice_reuse_method'] != 'none' and \
                         self.initial_imitation_is_performed:
 
