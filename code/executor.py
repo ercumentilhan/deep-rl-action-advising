@@ -478,7 +478,10 @@ class Executor:
                                 if self.initial_imitation_is_performed:
                                     bc_uncertainty = self.bc_model.get_uncertainty(obs)
                                     if bc_uncertainty < self.config['teacher_model_uc_th']:
-                                        reuse_advice = True
+
+                                        if random.random() < self.advice_reuse_probability:
+                                            reuse_advice = True
+
                                     elif self.action_advising_budget > 0:
                                         advice_collection_occurred = True
                                 elif self.action_advising_budget > 0:
