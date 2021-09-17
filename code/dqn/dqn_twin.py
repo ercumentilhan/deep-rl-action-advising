@@ -27,6 +27,7 @@ class DQNTwin(object):
             'dqn_twin_n_hidden_layers',
             'dqn_twin_hidden_size_1',
             'dqn_twin_hidden_size_2',
+            'dqn_twin_uncertainty_type', # 0: Q-values variance, 1: Q-values occurrences (maximum)
         ]
         for param in bc_config_params:
             self.config[param] = config[param]
@@ -216,8 +217,17 @@ class DQNTwin(object):
 
         obs_batch = [obs.astype(dtype=np.float32)] * self.config['dqn_twin_dropout_uc_ensembles']
         feed_dict = {self.tf_vars['obs']: obs_batch, self.tf_vars['dropout_rate']: self.config['dqn_twin_dropout_rate']}
-
         q_values = np.asarray(self.session.run(self.tf_vars['q_values'], feed_dict=feed_dict))
-        q_values_vars = np.var(q_values, axis=0)
 
-        return np.mean(q_values_vars), q_values_vars, q_values
+        uncertainty = None
+        q_values_vars = None
+
+        if self.config['dqn_twin_uncertainty_type'] == 0:  # Q-values variance
+            q_values_vars = np.var(q_values, axis=0)
+            uncertainty = np.mean(q_values_vars)
+        elif self.config['dqn_twin_uncertainty_type'] == 1:  # Best Q-values occurrences
+            max_q_values_occurrences = np.bincount(np.argmax(q_values, axis=1), minlength=self.config['env_n_actions'])
+            uncertainty = self.config['dqn_twin_dropout_uc_ensembles'] - np.max(max_q_values_occurrences)
+
+        return uncertainty, q_values_vars, q_values
+

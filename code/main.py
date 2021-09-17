@@ -71,6 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--dqn-twin-n-hidden-layers', type=int, default=1)
     parser.add_argument('--dqn-twin-hidden-size-1', type=int, default=512)
     parser.add_argument('--dqn-twin-hidden-size-2', type=int, default=64)
+    parser.add_argument('--dqn-twin-uncertainty-type', type=int, default=0)
 
     parser.add_argument('--dump-replay-memory', action='store_true', default=False)
 
