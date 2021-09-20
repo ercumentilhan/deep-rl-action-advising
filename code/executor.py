@@ -754,6 +754,11 @@ class Executor:
                 eval_score, eval_score_real = self.evaluate()
                 print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
 
+                # Evaluate (B) with the teacher model enabled (if appropriate)
+                if self.config['advice_imitation_method'] != 'none':
+                    eval_score, eval_score_real = self.evaluate(True)
+                    print('Evaluation (B) @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
+
             if self.config['save_models'] and \
                     (self.stats.n_env_steps % self.config['model_save_period'] == 0 or
                      self.stats.n_env_steps >= self.config['n_training_frames']):
@@ -834,13 +839,16 @@ class Executor:
 
     # ==================================================================================================================
 
-    def evaluate(self):
+    def evaluate(self, utilise_advice_reuse=False):
         eval_render = self.stats.n_evaluations % self.config['evaluation_visualization_period'] == 0 and \
                       self.config['visualize_videos']
 
         eval_total_reward_real = 0.0
         eval_total_reward = 0.0
         eval_duration = 0
+
+        eval_advices_reused = 0
+        eval_advices_reused_correct = 0
 
         if self.config['env_type'] == GRIDWORLD or \
                 self.config['env_type'] == MINATAR:
@@ -892,10 +900,21 @@ class Executor:
                     elif self.config['env_type'] == MAPE:
                         eval_obs_images.append(self.eval_env.render('rgb_array', visible=False)[0])
 
+                eval_action = None
+
                 if self.config['execute_teacher_policy']:
                     eval_action = self.teacher_agent.get_greedy_action(eval_obs)
                 else:
-                    eval_action = self.student_agent.get_greedy_action(eval_obs)
+                    if utilise_advice_reuse:
+                        eval_action = self.utilise_advice_reuse(eval_obs)
+
+                        if eval_action is not None:
+                            eval_advices_reused += 1
+                            if eval_action == self.teacher_agent.get_greedy_action(eval_obs):
+                                eval_advices_reused_correct += 1
+
+                    if not utilise_advice_reuse or eval_action is None:
+                        eval_action = self.student_agent.get_greedy_action(eval_obs)
 
                 eval_obs_next, eval_reward, eval_done = None, None, None
 
@@ -950,20 +969,39 @@ class Executor:
         eval_mean_reward = eval_total_reward / float(self.config['n_evaluation_trials'])
         eval_mean_reward_real = eval_total_reward_real / float(self.config['n_evaluation_trials'])
 
-        self.stats.evaluation_reward_auc += np.trapz([self.stats.evaluation_reward_last, eval_mean_reward])
-        self.stats.evaluation_reward_last = eval_mean_reward
+        if not utilise_advice_reuse:
+            self.stats.n_evaluations += 1
 
-        self.stats.evaluation_reward_real_auc += np.trapz(
-            [self.stats.evaluation_reward_real_last, eval_mean_reward_real])
-        self.stats.evaluation_reward_real_last = eval_mean_reward_real
+            self.stats.evaluation_reward_auc += np.trapz([self.stats.evaluation_reward_last, eval_mean_reward])
+            self.stats.evaluation_reward_last = eval_mean_reward
 
-        self.stats.n_evaluations += 1
+            self.stats.evaluation_reward_real_auc += np.trapz(
+                [self.stats.evaluation_reward_real_last, eval_mean_reward_real])
+            self.stats.evaluation_reward_real_last = eval_mean_reward_real
 
-        self.stats.update_summary_evaluation(eval_mean_reward,
-                                             eval_duration,
-                                             self.stats.evaluation_reward_auc,
-                                             eval_mean_reward_real,
-                                             self.stats.evaluation_reward_real_auc)
+            self.stats.update_summary_evaluation(eval_mean_reward,
+                                                 eval_duration,
+                                                 self.stats.evaluation_reward_auc,
+                                                 eval_mean_reward_real,
+                                                 self.stats.evaluation_reward_real_auc)
+
+        else:
+            self.stats.n_evaluations_b += 1
+
+            self.stats.evaluation_b_reward_auc += np.trapz([self.stats.evaluation_b_reward_last, eval_mean_reward])
+            self.stats.evaluation_b_reward_last = eval_mean_reward
+
+            self.stats.evaluation_b_reward_real_auc += np.trapz(
+                [self.stats.evaluation_b_reward_real_last, eval_mean_reward_real])
+            self.stats.evaluation_b_reward_real_last = eval_mean_reward_real
+
+            self.stats.update_summary_evaluation_b(eval_mean_reward,
+                                                 eval_duration,
+                                                 self.stats.evaluation_b_reward_auc,
+                                                 eval_mean_reward_real,
+                                                 self.stats.evaluation_b_reward_real_auc,
+                                                   eval_advices_reused,
+                                                   eval_advices_reused_correct)
 
         return eval_mean_reward, eval_mean_reward_real
 
@@ -998,6 +1036,49 @@ class Executor:
             return uncertainty
         else:
             return 0.
+
+    # ==================================================================================================================
+
+    def utilise_advice_reuse(self, obs):
+        reuse_advice = False
+        if self.config['advice_collection_method'] == 'dual_uc':
+            if self.student_agent.replay_memory.__len__() > self.config['dqn_rm_init']:
+                uc_value, _, _ = self.dqn_twin.get_uncertainty(obs)
+                is_uncertain = False
+
+                # (1) Adaptive threshold mode
+                if self.config['use_proportional_student_model_uc_th']:
+                    if len(self.student_model_uc_values_buffer) < \
+                            self.config['proportional_student_model_uc_th_window_size_min']:
+                        pass
+                    else:
+                        sorted_values = sorted(self.student_model_uc_values_buffer)
+                        percentile_th = np.percentile(sorted_values,
+                                                      self.config['proportional_student_model_uc_th_percentile'])
+                        if uc_value > percentile_th:
+                            is_uncertain = True
+
+                # (2) Constant threshold mode
+                else:
+                    if uc_value > self.config['student_model_uc_th']:
+                        is_uncertain = True
+
+                if is_uncertain:
+                    if self.initial_imitation_is_performed:
+                        bc_uncertainty = self.bc_model.get_uncertainty(obs)
+                        if bc_uncertainty < self.config['teacher_model_uc_th']:
+                            reuse_advice = True
+        else:
+            if self.config['advice_reuse_method'] != 'none' and \
+                    self.initial_imitation_is_performed:
+                bc_uncertainty = self.bc_model.get_uncertainty(obs)
+                if bc_uncertainty < self.config['teacher_model_uc_th']:
+                    reuse_advice = True
+
+        if reuse_advice:
+            return np.argmax(self.bc_model.get_action_probs(obs))
+
+        return None
 
 # ======================================================================================================================
 

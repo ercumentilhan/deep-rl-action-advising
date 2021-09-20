@@ -10,6 +10,7 @@ class Statistics(object):
         self.session = session
 
         self.n_evaluations = 0
+        self.n_evaluations_b = 0
 
         # Number of environment interactions
         self.n_env_steps = 0
@@ -176,10 +177,42 @@ class Statistics(object):
         self.evaluation_reward_real_auc_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
 
         # --------------------------------------------------------------------------------------------------------------
+        # Evaluation (B) with Advice Reuse Enabled
+        self.evaluation_b_reward_var = tf.compat.v1.Variable(0.)
+        self.evaluation_b_reward_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.evaluation_b_reward_real_var = tf.compat.v1.Variable(0.)
+        self.evaluation_b_reward_real_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.evaluation_b_duration = 0
+        self.evaluation_b_duration_var = tf.compat.v1.Variable(0.)
+        self.evaluation_b_duration_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.evaluation_b_reward_last = 0.0
+        self.evaluation_b_reward_real_last = 0.0
+
+        self.evaluation_b_reward_auc = 0.0
+        self.evaluation_b_reward_auc_var = tf.compat.v1.Variable(0.)
+        self.evaluation_b_reward_auc_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.evaluation_b_reward_real_auc = 0.0
+        self.evaluation_b_reward_real_auc_var = tf.compat.v1.Variable(0.)
+        self.evaluation_b_reward_real_auc_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.evaluation_b_advices_reused = 0
+        self.evaluation_b_advices_reused_var = tf.compat.v1.Variable(0.0)
+        self.evaluation_b_advices_reused_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.evaluation_b_advices_reused_correct = 0
+        self.evaluation_b_advices_reused_correct_var = tf.compat.v1.Variable(0.0)
+        self.evaluation_b_advices_reused_correct_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        # --------------------------------------------------------------------------------------------------------------
 
         self.summary_op_steps = self.setup_summary_steps()
         self.summary_op_episode = self.setup_summary_episode()
         self.summary_op_evaluation = self.setup_summary_evaluation()
+        self.summary_op_evaluation_b = self.setup_summary_evaluation_b()
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -232,6 +265,19 @@ class Statistics(object):
 
             self.evaluation_reward_auc_var.assign(self.evaluation_reward_auc_ph),
             self.evaluation_reward_real_auc_var.assign(self.evaluation_reward_real_auc_ph),
+        ]
+
+        self.assignments_evaluation_b = [
+            self.evaluation_b_reward_var.assign(self.evaluation_b_reward_ph),
+            self.evaluation_b_reward_real_var.assign(self.evaluation_b_reward_real_ph),
+
+            self.evaluation_b_duration_var.assign(self.evaluation_b_duration_ph),
+
+            self.evaluation_b_reward_auc_var.assign(self.evaluation_b_reward_auc_ph),
+            self.evaluation_b_reward_real_auc_var.assign(self.evaluation_b_reward_real_auc_ph),
+
+            self.evaluation_b_advices_reused_var.assign(self.evaluation_b_advices_reused_ph),
+            self.evaluation_b_advices_reused_correct_var.assign(self.evaluation_b_advices_reused_correct_ph),
         ]
 
     # ==================================================================================================================
@@ -318,7 +364,32 @@ class Statistics(object):
 
     # ==================================================================================================================
 
-    def update_summary_steps(self, steps_reward, steps_reward_auc, steps_reward_real, steps_reward_real_auc):
+    def setup_summary_evaluation_b(self):
+        evaluation_b_reward_sc = tf.compat.v1.summary.scalar('Evaluation B/Reward',
+                                                           self.evaluation_b_reward_var)
+        evaluation_b_reward_real_sc = tf.compat.v1.summary.scalar('Evaluation B/Reward Real',
+                                                                self.evaluation_b_reward_real_var)
+
+        evaluation_b_duration_sc = tf.compat.v1.summary.scalar('Evaluation B/Duration',
+                                                             self.evaluation_b_duration_var)
+
+        evaluation_b_reward_auc_sc = tf.compat.v1.summary.scalar('Evaluation B/Reward AUC',
+                                                               self.evaluation_b_reward_auc_var)
+        evaluation_b_reward_real_auc_sc = tf.compat.v1.summary.scalar('Evaluation B/Reward Real AUC',
+                                                                    self.evaluation_b_reward_real_auc_var)
+
+        evaluation_b_advices_reused_sc = tf.compat.v1.summary.scalar('Evaluation B/Advices Reused',
+                                                                    self.evaluation_b_advices_reused_var)
+
+        evaluation_b_advices_reused_correct_sc = tf.compat.v1.summary.scalar('Evaluation B/Advices Reused Correct',
+                                                                    self.evaluation_b_advices_reused_correct_var)
+
+        return tf.compat.v1.summary.merge([evaluation_b_reward_sc, evaluation_b_duration_sc, evaluation_b_reward_auc_sc,
+                                           evaluation_b_reward_real_sc, evaluation_b_reward_real_auc_sc,
+                                           evaluation_b_advices_reused_sc, evaluation_b_advices_reused_correct_sc])
+
+    # ==================================================================================================================
+
 
         if self.n_learning_steps_taken_in_period == 0:
             self.loss = 0.0
@@ -409,4 +480,29 @@ class Statistics(object):
 
         self.session.run(requested_ops, feed_dict=feed_dict)
         summary = self.session.run(self.summary_op_evaluation)
+        self.summary_writer.add_summary(summary, self.n_env_steps)
+
+    # ==================================================================================================================
+
+    def update_summary_evaluation_b(self, evaluation_reward, evaluation_duration, evaluation_reward_auc,
+                                  evaluation_reward_real, evaluation_reward_real_auc,
+                                    evaluation_advices_reused, evaluation_advices_reused_correct):
+
+        requested_ops = [assignment for assignment in self.assignments_evaluation_b]
+
+        feed_dict = {
+            self.evaluation_b_reward_ph: evaluation_reward,
+            self.evaluation_b_reward_real_ph: evaluation_reward_real,
+
+            self.evaluation_b_duration_ph: evaluation_duration,
+
+            self.evaluation_b_reward_auc_ph: evaluation_reward_auc,
+            self.evaluation_b_reward_real_auc_ph: evaluation_reward_real_auc,
+
+            self.evaluation_b_advices_reused_ph: evaluation_advices_reused,
+            self.evaluation_b_advices_reused_correct_ph: evaluation_advices_reused_correct,
+        }
+
+        self.session.run(requested_ops, feed_dict=feed_dict)
+        summary = self.session.run(self.summary_op_evaluation_b)
         self.summary_writer.add_summary(summary, self.n_env_steps)
