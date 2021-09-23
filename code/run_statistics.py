@@ -390,6 +390,7 @@ class Statistics(object):
 
     # ==================================================================================================================
 
+    def update_summary_steps(self, steps_reward, steps_reward_auc, steps_reward_real, steps_reward_real_auc):
 
         if self.n_learning_steps_taken_in_period == 0:
             self.loss = 0.0
