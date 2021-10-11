@@ -136,6 +136,12 @@ if __name__ == '__main__':
     parser.add_argument('--advice-reuse-probability-decay-end', type=int, default=0)
     parser.add_argument('--advice-reuse-probability-final', type=float, default=0)
 
+    # Reuse stopping
+    parser.add_argument('--advice-reuse-stopping', action='store_true', default=False)
+    parser.add_argument('--advice-reuse-stopping-eval-start', type=int, default=9)
+    parser.add_argument('--advice-reuse-stopping-eval-window-size', type=int, default=5)
+    parser.add_argument('--advice-reuse-stopping-eval-proximity', type=float, default=0.9)
+
     # ------------------------------------------------------------------------------------------------------------------
 
     arg_vars = vars(parser.parse_args())
