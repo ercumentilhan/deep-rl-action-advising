@@ -107,6 +107,9 @@ class Executor:
 
         self.student_model_uc_values_buffer = None
 
+        self.evaluation_scores_windows = [collections.deque(maxlen=self.config['advice_reuse_stopping_eval_window_size']),
+                                          collections.deque(maxlen=self.config['advice_reuse_stopping_eval_window_size'])]
+
     # ==================================================================================================================
 
     def render(self, env):
@@ -751,13 +754,38 @@ class Executor:
                 self.steps_reward_real = 0.0
 
             if self.stats.n_env_steps % self.config['evaluation_period'] == 0:
-                eval_score, eval_score_real = self.evaluate()
-                print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
+                eval_score_a, eval_score_real_a = self.evaluate()
+                print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_a, eval_score_real_a))
 
                 # Evaluate (B) with the teacher model enabled (if appropriate)
                 if self.config['advice_imitation_method'] != 'none':
-                    eval_score, eval_score_real = self.evaluate(True)
-                    print('Evaluation (B) @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
+                    eval_score_b, eval_score_real_b = self.evaluate(True)
+                    print('Evaluation (B) @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_b, eval_score_real_b))
+
+                    if self.stats.n_evaluations_b >= self.config['advice_reuse_stopping_eval_start']:
+                        self.evaluation_scores_windows[0].append(eval_score_real_a)
+                        self.evaluation_scores_windows[1].append(eval_score_real_b)
+
+                    if self.config['advice_reuse_stopping'] and \
+                            self.config['advice_reuse_probability_final'] > 0:  # Compare Evaluation A and Evaluation B scores
+
+                        if len(self.evaluation_scores_windows[0]) == self.config['advice_reuse_stopping_eval_window_size'] \
+                                and len(self.evaluation_scores_windows[1]) == self.config['advice_reuse_stopping_eval_window_size']:
+                            average_a = np.mean(self.evaluation_scores_windows[0])
+                            average_b = np.mean(self.evaluation_scores_windows[1])
+
+                            if average_b < 0:
+                                target_score = float(average_b) * (2.0 - self.config['advice_reuse_stopping_eval_proximity'])
+                            else:
+                                target_score = float(average_b) * self.config['advice_reuse_stopping_eval_proximity']
+
+                            print('Average A: {} | B: {} | Target: {}'.format(average_a, average_b, target_score))
+
+                            if average_a >= target_score:
+                                print('>>> Stopping advice reuse!')
+                                self.advice_reuse_probability = 0.0
+                                self.config['advice_reuse_probability_final'] = 0.0
+
 
             if self.config['save_models'] and \
                     (self.stats.n_env_steps % self.config['model_save_period'] == 0 or
