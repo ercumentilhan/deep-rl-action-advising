@@ -620,6 +620,7 @@ CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
 CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
 CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
 CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
 CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
 CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
 CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
