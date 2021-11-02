@@ -297,7 +297,8 @@ class Executor:
         # Initialise the teacher agent
 
         if self.config['load_teacher']:
-            teacher_info = TEACHER[self.config['env_key']]
+            print('Teacher Key:', self.config['env_key'] + '-' + str(self.config['teacher_level']))
+            teacher_info = TEACHER[self.config['env_key'] + '-' + str(self.config['teacher_level'])]
             self.config['teacher_id'] = teacher_info[0]
             self.config['teacher_model_structure'] = teacher_info[3]
 
@@ -358,7 +359,7 @@ class Executor:
         # Restore the teacher model from a saved checkpoint
         if self.config['load_teacher']:
             print('Restoring the teacher model...')
-            teacher_info = TEACHER[self.config['env_key']]
+            teacher_info = TEACHER[self.config['env_key'] + '-' + str(self.config['teacher_level'])]
             self.teacher_agent.restore(self.checkpoints_dir, teacher_info[0] + '/' + teacher_info[1], teacher_info[2])
 
         # --------------------------------------------------------------------------------------------------------------
