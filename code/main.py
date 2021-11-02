@@ -83,6 +83,7 @@ if __name__ == '__main__':
     parser.add_argument('--env-evaluation-seed', type=int, default=1)
 
     parser.add_argument('--load-teacher', action='store_true', default=False)
+    parser.add_argument('--teacher-level', type=int, default=1)
     parser.add_argument('--execute-teacher-policy', action='store_true', default=False)  # For debugging
 
     # Pre-collected Dataset
