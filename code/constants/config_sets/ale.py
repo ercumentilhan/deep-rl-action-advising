@@ -68,6 +68,7 @@ def generate_config():
     config[0]['seed'] = 0
 
     config[1]['load-teacher'] = False
+    config[0]['teacher-level'] = 1  # 0: Incompetent, 1: Competent
     config[1]['execute-teacher-policy'] = False  # Only for debugging the teacher policy
 
     # Pre-collected Dataset
@@ -140,8 +141,24 @@ def generate_config():
 
 # ======================================================================================================================
 
-ALE_AA_BUDGET = 25000  # To be set according to the experiment preference
+BUDGET_OPTIONS = [25000, 100000]
+TEACHER_LEVEL_OPTIONS = [0, 1]
+
 CONFIG_SETS = {}
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+# ID Structure: <Method Identifier + Subversion> & <Teacher Level> & <Budget>
+# [Example] Early Advising with 100k budget and competent teacher: 20011
+#
+# <Teacher Level>
+# 0: Incompetent
+# 1: Competent
+#
+# <Budget>
+# 0: 25000
+# 1: 100000
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Generate demonstrator (Long training)
@@ -169,14 +186,17 @@ CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 1  # Best Q-values occurrences
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Evaluate teacher (with a single evaluation step)
-id = 500
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][1]['execute-teacher-policy'] = True
-CONFIG_SETS[id][0]['dqn-rm-init'] = int(1e6)  # Do NOT train the model in this evaluation setup
-CONFIG_SETS[id][0]['n-training-frames'] = int(50e3)
-CONFIG_SETS[id][1]['visualize-videos'] = True
-CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    id = int('50' + str(i))
+    CONFIG_SETS[id] = generate_config()
+    CONFIG_SETS[id][1]['load-teacher'] = True
+    CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+    CONFIG_SETS[id][1]['execute-teacher-policy'] = True
+    CONFIG_SETS[id][0]['dqn-rm-init'] = int(1e6)  # Do NOT train the model in this evaluation setup
+    CONFIG_SETS[id][0]['n-training-frames'] = int(50e3)
+    CONFIG_SETS[id][1]['visualize-videos'] = True
+    CONFIG_SETS[id][0]['evaluation-visualization-period'] = 1
 
 # ----------------------------------------------------------------------------------------------------------------------
 # NA: No Advising (Training from scratch)
@@ -187,443 +207,366 @@ CONFIG_SETS[id] = generate_config()
 # ----------------------------------------------------------------------------------------------------------------------
 # EA: Early Advising
 
-id = 2000
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-
-id = 2001
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('200' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
 
 # ----------------------------------------------------------------------------------------------------------------------
 # RA: Random Advising
 
-id = 2100
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-
-id = 2101
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('210' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR: Advice Reuse
 # Paper: "Action Advising with Advice Imitation in Deep Reinforcement Learning" (https://arxiv.org/abs/2104.08441)
 
-id = 3000
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['teacher-model-uc-th'] = 0.01
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-#CONFIG_SETS[id][0]['advice-reuse-uncertainty-threshold'] = 0.01
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('300' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+        CONFIG_SETS[id][0]['teacher-model-uc-th'] = 0.01
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR+A: AR is enhanced with the automatic threshold tuning technique
 
-id = 3100
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('310' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'restricted'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR+A+E: AR+A is enhanced with the unrestricted reuse procedure
 
-id = 3200
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('320' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(1e9)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = CONFIG_SETS[id][0]['advice-collection-budget']
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(200e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AIR: AR+A+E is enhanced with the uncertainty-based advice collection
 
-id = 3300
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'teacher_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)  # original: int(200e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)  # original: int(50e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('330' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'teacher_model_uc'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)  # original: int(200e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)  # original: int(50e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
 
-id = 3301
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'teacher_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)  # original: int(200e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)  # original: int(50e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Student model uncertainty driven with constant threshold
-
-id = 4000
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
-
-# ----------------------------------------------------------------------------------------------------------------------
-# Student model uncertainty driven with adaptive threshold
-
-id = 4100
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-
-id = 4101
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-
+# AIR + Reuse Stopping
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('331' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'teacher_model_uc'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)  # original: int(200e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)  # original: int(50e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+        CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Student model uncertainty driven with constant threshold + Teacher Imitation & Reuse
+# Student model uncertainty driven collection (with constant threshold)
 
-id = 5000
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
-
-id = 5001
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('400' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Student model uncertainty driven with adaptive threshold + Teacher Imitation & Reuse
+# Student model uncertainty driven collection (with adaptive threshold)
 
-id = 5100
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('410' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
 
-id = 5101
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+# ----------------------------------------------------------------------------------------------------------------------
+# Student model uncertainty driven collection (with constant threshold) + Teacher Imitation & Reuse
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('500' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Student model uncertainty driven collection (with adaptive threshold) + Teacher Imitation & Reuse
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('510' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Dual uncertainty (with constant threshold for the student model)
 
-id = 6000
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
-
-id = 6001
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('600' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][0]['student-model-uc-th'] = 0.01
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][1][
+            'autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Dual uncertainty (with adaptive threshold for the student model) with 1.0 probability of reuse (when appropriate)
 
-id = 6100
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
-
-id = 6101
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('610' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][1][
+            'autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Dual uncertainty (with adaptive threshold for the student model) with 0.5 probability of reuse (when appropriate)
 
-id = 6110
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
-
-id = 6111
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('611' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][1][
+            'autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Dual uncertainty (with adaptive threshold for the student model) with decaying probability of reuse (when appropriate)
 
-id = 6120
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
-
-id = 6121
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(100e3)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('612' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][1][
+            'autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
 
 # ----------------------------------------------------------------------------------------------------------------------
-# Modify this one
 
-id = 7000
-CONFIG_SETS[id] = generate_config()
-CONFIG_SETS[id][1]['load-teacher'] = True
-CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
-CONFIG_SETS[id][0]['advice-collection-budget'] = int(ALE_AA_BUDGET)
-CONFIG_SETS[id][1]['dqn-twin'] = True
-CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
-CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
-CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
-CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
-CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
-CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
-CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
-CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
-CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
-CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
-CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
-CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
-CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
-CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('700' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'dual_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][1][
+            'autoset-teacher-model-uc-th'] = True  # A constant threshold can also be used instead of auto setting
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
+        CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 
