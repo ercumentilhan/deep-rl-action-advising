@@ -268,7 +268,7 @@ if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
     if os.path.exists(plots_dir):
         shutil.rmtree(plots_dir)
 
-    # generate_csv_files(summaries_dir, TAGS)
+    generate_csv_files(summaries_dir, TAGS)
 
     for tag in TAGS:
         generate_combined_plot(summaries_dir, plots_dir, tag)
