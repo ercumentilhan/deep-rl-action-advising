@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import shutil
+import csv
 
 from collections import defaultdict
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
@@ -16,10 +17,18 @@ import seaborn as sns
 sns.set()
 sns.set_style("darkgrid", {"axes.facecolor": ".9"})
 
-RUNS_DIR = 'E:\\Runs'
-GAME_DIR = 'Seaquest'
+#Either provide runs & games directory
+RUNS_DIR = None #'E:\\Runs'
+GAME_DIR = None #'Seaquest'
 
-TEACHER_SCORE = 8178.0
+#OR provide a direct summaries directory
+SUMM_DIR = 'D:/UoA/After_Omen_BreakDown_2021/Results/Twin_DQN_3300_5100_6100/Summaries'
+
+#Set the environment to plot results for
+ENV = 'Pong' #'Seaquest'
+
+#Set the teacher's score for that
+TEACHER_SCORE = 12.0  #8178.0
 
 TAGS = [
     'Evaluation/Reward_Real',
@@ -161,9 +170,13 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
 
     pda_all, labels = [], []
     run_dirs, plot_dirs = [], []
+
     for d in next(os.walk(summaries_dir))[1]:
         labels.append(d)
         run_dirs.append(os.path.join(summaries_dir, d))
+
+    #[Algos x 5] - per row: Algo Name, Init, inter, last, and total rewards
+    reward_stats = [[j for j in range(5)] for k, _ in enumerate(run_dirs)]
 
     for i, run_dir in enumerate(run_dirs):
         seed_dirs = []
@@ -174,6 +187,11 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         pds_x, pds_y = [], []
         lengths = []
 
+        if tag == 'Evaluation/Reward_Real':
+            #[5 x Seed] - each column would be one seed (easy to average across seeds/columns)
+            seed_sum = [[j for j in range(len(seed_dirs))] for k in range(4)]
+
+        j = 0
         for seed_dir in seed_dirs:
             csv_filepath = os.path.join(seed_dir, tag.replace("/", "-") + '.csv')
             if os.path.isfile(csv_filepath):
@@ -181,6 +199,25 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
                 pds_x.append(pd_x)
                 pds_y.append(pd_y)
                 lengths.append(np.shape(pd_x)[0])
+
+                if tag == 'Evaluation/Reward_Real':
+                    l = len(pd_y)
+
+                    #Take a sum for each seed and then average outside x 4
+                    seed_sum[0][j] = sum(pd_y[1 : int(l / 3)])
+                    seed_sum[1][j] = sum(pd_y[int(l / 3):int(2/3 * l)])
+                    seed_sum[2][j] = sum(pd_y[int(2 / 3 * l):l])
+                    seed_sum[3][j] = sum(pd_y[1:])
+
+                    j += 1
+
+        if tag == 'Evaluation/Reward_Real':
+            #Set the Algo name
+            reward_stats[i][0] = labels[i] 
+            #Average out
+            for k in range(4):
+                reward_stats[i][k+1] = sum(seed_sum[k]) / len(seed_sum[k])
+
 
         if len(pds_x) > 0:
             min_length = min(lengths)
@@ -211,6 +248,11 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
             sns.lineplot(x='variable', y='value', data=pda_all[i], legend='brief', err_style='band',
                          label=labels[i], ci='sd', linewidth=1)
 
+    if tag == 'Evaluation/Reward_Real':
+        with open(os.path.join(plots_dir,'reward_stats.csv'), 'w', newline='') as f: 
+            write = csv.writer(f) 
+            write.writerows(reward_stats)
+
     if tag == 'Evaluation/Reward_Real' or tag == 'Evaluation_B/Reward_Real':
         plt.axhline(y=TEACHER_SCORE, color='slategray', linestyle='--')
 
@@ -227,7 +269,8 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
             x_lim = [-10, 250000]
             modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-") + '_Zoomed')
     else:
-        y_lim = [-200, None]
+        if ENV == 'Seaquest':
+            y_lim = [-200, None]
         modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-"))
 
 # ======================================================================================================================
@@ -260,10 +303,13 @@ def modify_and_save_plot(ax, tag, x_lim, y_lim, filename):
 
 # ======================================================================================================================
 
-summaries_dir = os.path.join(RUNS_DIR, GAME_DIR)
+if RUNS_DIR != None or GAME_DIR != None:
+    summaries_dir = os.path.join(RUNS_DIR, GAME_DIR)
+else:
+    summaries_dir = SUMM_DIR
 
 if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
-    plots_dir = os.path.join(RUNS_DIR, GAME_DIR + '_Plots')
+    plots_dir = os.path.join(summaries_dir + '_Plots')
 
     if os.path.exists(plots_dir):
         shutil.rmtree(plots_dir)
