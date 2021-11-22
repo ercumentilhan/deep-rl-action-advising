@@ -131,6 +131,8 @@ def generate_config():
     config[0]['advice-reuse-probability-decay-end'] = 0
     config[0]['advice-reuse-probability-final'] = 0
 
+    config[1]['evaluate-advice-reuse-model'] = False
+
     # Advice reuse stopping conditions
     config[1]['advice-reuse-stopping'] = False
     config[0]['advice-reuse-stopping-eval-start'] = 9

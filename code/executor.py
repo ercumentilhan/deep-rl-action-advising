@@ -413,10 +413,15 @@ class Executor:
 
             # ----------------------------------------------------------------------------------------------------------
 
+            self_action = None
+            teacher_action = None
             action = None
 
             if self.config['execute_teacher_policy']:
-                action = self.teacher_agent.get_greedy_action(obs)
+                if teacher_action is None:
+                    teacher_action = self.teacher_agent.get_greedy_action(obs)
+
+                action = teacher_action
                 action_is_explorative = False
             else:
                 self_action, action_is_explorative = self.student_agent.get_action(obs)
@@ -563,8 +568,22 @@ class Executor:
                         self.samples_since_imitation = 0
 
             # ----------------------------------------------------------------------------------------------------------
-
             # Reuse
+
+            reuse_model_action = None
+
+            if self.config['evaluate_advice_reuse_model']:
+                if self.config['advice_reuse_method'] != 'none' and \
+                        self.initial_imitation_is_performed:
+                    reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+
+                    if teacher_action is None:
+                        teacher_action = self.teacher_agent.get_greedy_action(obs)
+
+                    if reuse_model_action == teacher_action:
+                        self.stats.advice_reuse_model_is_correct += 1
+                        self.stats.advice_reuse_model_is_correct_cum += 1
+
             if not advice_collection_occurred and self.config['advice_collection_method'] != 'dual_uc':
                 if self.config['advice_reuse_method'] != 'none' and \
                         self.initial_imitation_is_performed:
@@ -578,15 +597,21 @@ class Executor:
                                 reuse_advice = True
 
             if reuse_advice:
-                action = np.argmax(self.bc_model.get_action_probs(obs))
+                if reuse_model_action is None:
+                    reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+
+                action = reuse_model_action
+
                 self.stats.advices_reused += 1
                 self.stats.advices_reused_cum += 1
 
                 self.advices_reused_ep += 1
                 self.stats.advices_reused_ep_cum += 1
 
-                # To measure accuracy of imitation - can be disabled to speed-up execution
-                if action == self.teacher_agent.get_greedy_action(obs):
+                if teacher_action is None:
+                    teacher_action = self.teacher_agent.get_greedy_action(obs)
+
+                if action == teacher_action:
                     self.stats.advices_reused_correct += 1
                     self.stats.advices_reused_correct_cum += 1
                     self.advices_reused_ep_correct += 1
