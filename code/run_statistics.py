@@ -241,8 +241,8 @@ class Statistics(object):
             self.advices_reused_correct_var.assign(self.advices_reused_correct_ph),
             self.advices_reused_correct_cum_var.assign(self.advices_reused_correct_cum_ph),
 
-            self.advice_reuse_model_is_correct_var.assing(self.advice_reuse_model_is_correct_ph),
-            self.advice_reuse_model_is_correct_cum_var.assing(self.advice_reuse_model_is_correct_cum_ph),
+            self.advice_reuse_model_is_correct_var.assign(self.advice_reuse_model_is_correct_ph),
+            self.advice_reuse_model_is_correct_cum_var.assign(self.advice_reuse_model_is_correct_cum_ph),
 
             self.steps_reward_var.assign(self.steps_reward_ph),
             self.steps_reward_auc_var.assign(self.steps_reward_auc_ph),
