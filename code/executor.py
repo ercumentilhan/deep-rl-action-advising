@@ -507,15 +507,19 @@ class Executor:
                         advice_collection_occurred = True
 
             if advice_collection_occurred:
-                self.action_advising_budget -= 1
-                self.stats.advices_taken += 1
-                self.stats.advices_taken_cum += 1
+                teacher_action = self.teacher_agent.get_greedy_action(obs)
+                action = teacher_action
 
-                action = self.teacher_agent.get_greedy_action(obs)
+                if self.config['mistake_correction_mode'] and action == self_action:
+                    pass
+                else:
+                    self.action_advising_budget -= 1
+                    self.stats.advices_taken += 1
+                    self.stats.advices_taken_cum += 1
 
-                if self.config['advice_imitation_method'] != 'none':
-                    self.bc_model.feedback_observe(obs, action)
-                    self.samples_since_imitation += 1
+                    if self.config['advice_imitation_method'] != 'none':
+                        self.bc_model.feedback_observe(obs, action)
+                        self.samples_since_imitation += 1
 
             self.steps_since_imitation += 1
 
