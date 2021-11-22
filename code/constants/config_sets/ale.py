@@ -86,6 +86,7 @@ def generate_config():
 
     # Collection
     config[0]['advice-collection-budget'] = 0
+    config[1]['mistake-correction-mode'] = False
 
     # 'none'
     # 'early'
@@ -227,6 +228,19 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
         CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
         CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
+
+# ----------------------------------------------------------------------------------------------------------------------
+# EA: Early Advising with Cheating (Mistake Correction)
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('220' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
+        CONFIG_SETS[id][1]['mistake-correction-mode'] = True
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR: Advice Reuse
@@ -427,6 +441,73 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
         CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
         CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+
+# Student model uncertainty driven collection (with adaptive threshold) + Teacher Imitation & Reuse
+# with Cheating (Mistake Correction)
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('530' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+        CONFIG_SETS[id][1]['mistake-correction-mode'] = True
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Student model uncertainty driven collection (with adaptive threshold) + Teacher Imitation & Reuse + Reuse Stopping
+# with Cheating (Mistake Correction)
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('531' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'student_model_uc'
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][1]['use-proportional-student-model-uc-th'] = True
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size'] = 10000
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-window-size-min'] = 200
+        CONFIG_SETS[id][0]['proportional-student-model-uc-th-percentile'] = 70
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'periodic'
+        CONFIG_SETS[id][0]['advice-imitation-period-steps'] = int(CONFIG_SETS[id][0]['advice-collection-budget'] * 2)
+        CONFIG_SETS[id][0]['advice-imitation-period-samples'] = int(
+            CONFIG_SETS[id][0]['advice-collection-budget'] // 10)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-init'] = int(50e3)
+        CONFIG_SETS[id][0]['advice-imitation-training-iterations-periodic'] = int(20e3)
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][1]['autoset-teacher-model-uc-th'] = True
+        CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = True
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-begin'] = int(500e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
+        CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
+        CONFIG_SETS[id][1]['mistake-correction-mode'] = True
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Dual uncertainty (with constant threshold for the student model)
