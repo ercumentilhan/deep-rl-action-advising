@@ -87,6 +87,14 @@ class Statistics(object):
         self.advices_reused_correct_cum_var = tf.compat.v1.Variable(0.0)
         self.advices_reused_correct_cum_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
 
+
+        self.advice_reuse_model_is_correct = 0
+        self.advice_reuse_model_is_correct_var = tf.compat.v1.Variable(0.0)
+        self.advice_reuse_model_is_correct_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.advice_reuse_model_is_correct_cum = 0
+        self.advice_reuse_model_is_correct_cum_var = tf.compat.v1.Variable(0.0)
+        self.advice_reuse_model_is_correct_cum_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
         # -- Per Episode
         self.advices_reused_ep = 0
         self.advices_reused_ep_var = tf.compat.v1.Variable(0.0)
@@ -233,6 +241,9 @@ class Statistics(object):
             self.advices_reused_correct_var.assign(self.advices_reused_correct_ph),
             self.advices_reused_correct_cum_var.assign(self.advices_reused_correct_cum_ph),
 
+            self.advice_reuse_model_is_correct_var.assing(self.advice_reuse_model_is_correct_ph),
+            self.advice_reuse_model_is_correct_cum_var.assing(self.advice_reuse_model_is_correct_cum_ph),
+
             self.steps_reward_var.assign(self.steps_reward_ph),
             self.steps_reward_auc_var.assign(self.steps_reward_auc_ph),
 
@@ -314,6 +325,12 @@ class Statistics(object):
         advices_reused_correct_cum_sc = tf.compat.v1.summary.scalar('Advices Reused Cumulative Correct/All',
                                                                     self.advices_reused_correct_cum_var)
 
+        advice_reuse_model_is_correct_sc = tf.compat.v1.summary.scalar('Advices Reuse Model Correct/Steps',
+                                                                self.advice_reuse_model_is_correct_var)
+
+        advice_reuse_model_is_correct_cum_sc = tf.compat.v1.summary.scalar('Advices Reuse Model Correct/Cumulative',
+                                                                self.advice_reuse_model_is_correct_cum_var)
+
         to_be_merged = [loss_sc,
                         loss_twin_sc,
                         epsilon_sc, advices_taken_sc, advices_taken_cumulative_sc, steps_reward_sc,
@@ -322,6 +339,8 @@ class Statistics(object):
                         advices_reused_sc, advices_reused_cum_sc,
                         advices_reused_correct_sc, advices_reused_correct_cum_sc,
                         steps_reward_real_sc, steps_reward_real_auc_sc
+                        advice_reuse_model_is_correct_sc, advice_reuse_model_is_correct_cum_sc,
+                        steps_reward_real_sc, steps_reward_real_auc_sc, steps_uc_sc,
                         ]
 
         return tf.compat.v1.summary.merge(to_be_merged)
@@ -417,6 +436,9 @@ class Statistics(object):
             self.advices_reused_cum_ph: self.advices_reused_cum,
             self.advices_reused_correct_ph: self.advices_reused_correct,
             self.advices_reused_correct_cum_ph: self.advices_reused_correct_cum,
+
+            self.advice_reuse_model_is_correct_ph: self.advice_reuse_model_is_correct,
+            self.advice_reuse_model_is_correct_cum_ph: self.advice_reuse_model_is_correct_cum,
 
             self.steps_reward_ph: steps_reward,
             self.steps_reward_auc_ph: steps_reward_auc,
