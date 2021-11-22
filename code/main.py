@@ -114,6 +114,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--preserve-collected-advice', action='store_true', default=False)
 
+    parser.add_argument('--mistake-correction-mode', action='store_true', default=False)
+
     # Imitation
     parser.add_argument('--advice-imitation-method', type=str, default='none')  # 'none', 'initial', 'periodic'
     parser.add_argument('--advice-imitation-period-steps', type=int, default=0)
@@ -136,6 +138,8 @@ if __name__ == '__main__':
     parser.add_argument('--advice-reuse-probability-decay-begin', type=int, default=0)
     parser.add_argument('--advice-reuse-probability-decay-end', type=int, default=0)
     parser.add_argument('--advice-reuse-probability-final', type=float, default=0)
+
+    parser.add_argument('--evaluate-advice-reuse-model', action='store_true', default=False)
 
     # Reuse stopping
     parser.add_argument('--advice-reuse-stopping', action='store_true', default=False)
@@ -170,6 +174,7 @@ if __name__ == '__main__':
 
         config['env_key'] = arg_vars['env_key']
         config['seed'] = arg_vars['seed']
+        config['evaluate_advice_reuse_model'] = arg_vars['evaluate-advice-reuse-model']
     else:
         print('Parsing full config...')
         config = vars(parser.parse_args())
