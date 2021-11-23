@@ -338,7 +338,6 @@ class Statistics(object):
                         advices_used_sc, advices_used_cum_sc,
                         advices_reused_sc, advices_reused_cum_sc,
                         advices_reused_correct_sc, advices_reused_correct_cum_sc,
-                        steps_reward_real_sc, steps_reward_real_auc_sc
                         advice_reuse_model_is_correct_sc, advice_reuse_model_is_correct_cum_sc,
                         steps_reward_real_sc, steps_reward_real_auc_sc, steps_uc_sc,
                         ]
