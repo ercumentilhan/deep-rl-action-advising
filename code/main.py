@@ -174,7 +174,7 @@ if __name__ == '__main__':
 
         config['env_key'] = arg_vars['env_key']
         config['seed'] = arg_vars['seed']
-        config['evaluate_advice_reuse_model'] = arg_vars['evaluate-advice-reuse-model']
+        config['evaluate_advice_reuse_model'] = arg_vars['evaluate_advice_reuse_model']
     else:
         print('Parsing full config...')
         config = vars(parser.parse_args())
