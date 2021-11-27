@@ -27,8 +27,10 @@ SUMM_DIR = 'D:/UoA/After_Omen_BreakDown_2021/Results/Twin_DQN_3300_5100_6100/Sum
 # Set the environment to plot results for
 ENV = 'Seaquest' # 'Seaquest'
 
-#Set the teacher's score for that
-TEACHER_SCORE = 12.0  #8178.0
+# Set the incompetent (0) & competent (1) teachers' scores
+# Set None to disable
+TEACHER_SCORE_0 = 1418.0
+TEACHER_SCORE_1 = 8178.0
 
 TAGS = [
     'Evaluation/Reward_Real',
@@ -254,7 +256,10 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
             write.writerows(reward_stats)
 
     if tag == 'Evaluation/Reward_Real' or tag == 'Evaluation_B/Reward_Real':
-        plt.axhline(y=TEACHER_SCORE, color='slategray', linestyle='--')
+        if TEACHER_SCORE_0 is not None:
+            plt.axhline(y=TEACHER_SCORE_0, color='rosybrown', linestyle='--')
+        if TEACHER_SCORE_1 is not None:
+            plt.axhline(y=TEACHER_SCORE_1, color='darkseagreen', linestyle='--')
 
     x_lim, y_lim = [None, None], [None, None]
 
