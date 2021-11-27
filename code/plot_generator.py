@@ -17,15 +17,15 @@ import seaborn as sns
 sns.set()
 sns.set_style("darkgrid", {"axes.facecolor": ".9"})
 
-#Either provide runs & games directory
-RUNS_DIR = None #'E:\\Runs'
-GAME_DIR = None #'Seaquest'
+# Either provide runs & games directory
+RUNS_DIR = None  # 'E:\\Runs'
+GAME_DIR = None  # 'Seaquest'
 
-#OR provide a direct summaries directory
 SUMM_DIR = 'D:/UoA/After_Omen_BreakDown_2021/Results/Twin_DQN_3300_5100_6100/Summaries'
+# OR provide a direct summaries directory
 
-#Set the environment to plot results for
-ENV = 'Pong' #'Seaquest'
+# Set the environment to plot results for
+ENV = 'Seaquest' # 'Seaquest'
 
 #Set the teacher's score for that
 TEACHER_SCORE = 12.0  #8178.0
@@ -175,7 +175,7 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         labels.append(d)
         run_dirs.append(os.path.join(summaries_dir, d))
 
-    #[Algos x 5] - per row: Algo Name, Init, inter, last, and total rewards
+    # [Algos x 5] - per row: Algo Name, Init, inter, last, and total rewards
     reward_stats = [[j for j in range(5)] for k, _ in enumerate(run_dirs)]
 
     for i, run_dir in enumerate(run_dirs):
@@ -188,7 +188,7 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         lengths = []
 
         if tag == 'Evaluation/Reward_Real':
-            #[5 x Seed] - each column would be one seed (easy to average across seeds/columns)
+            # [5 x Seed] - each column would be one seed (easy to average across seeds/columns)
             seed_sum = [[j for j in range(len(seed_dirs))] for k in range(4)]
 
         j = 0
@@ -203,7 +203,7 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
                 if tag == 'Evaluation/Reward_Real':
                     l = len(pd_y)
 
-                    #Take a sum for each seed and then average outside x 4
+                    # Take a sum for each seed and then average outside x 4
                     seed_sum[0][j] = sum(pd_y[1 : int(l / 3)])
                     seed_sum[1][j] = sum(pd_y[int(l / 3):int(2/3 * l)])
                     seed_sum[2][j] = sum(pd_y[int(2 / 3 * l):l])
@@ -212,9 +212,9 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
                     j += 1
 
         if tag == 'Evaluation/Reward_Real':
-            #Set the Algo name
+            # Set the Algo name
             reward_stats[i][0] = labels[i] 
-            #Average out
+            # Average out
             for k in range(4):
                 reward_stats[i][k+1] = sum(seed_sum[k]) / len(seed_sum[k])
 
