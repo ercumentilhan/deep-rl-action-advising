@@ -135,7 +135,7 @@ def generate_config():
 
     # Advice reuse stopping conditions
     config[1]['advice-reuse-stopping'] = False
-    config[0]['advice-reuse-stopping-eval-start'] = 9
+    config[0]['advice-reuse-stopping-eval-start'] = 50
     config[0]['advice-reuse-stopping-eval-window-size'] = 5
     config[0]['advice-reuse-stopping-eval-proximity'] = 0.9
 
@@ -352,7 +352,7 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
         CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
         CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
-        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 50
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
 
@@ -474,7 +474,7 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
         CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
         CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
-        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 50
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
 
@@ -541,7 +541,7 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['advice-reuse-probability-decay-end'] = int(2000e3)
         CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.1
         CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
-        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 50
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
         CONFIG_SETS[id][1]['mistake-correction-mode'] = True
@@ -681,7 +681,7 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
         CONFIG_SETS[id][1]['advice-reuse-probability-decay'] = False
         CONFIG_SETS[id][1]['advice-reuse-stopping'] = True
-        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 9
+        CONFIG_SETS[id][0]['advice-reuse-stopping-eval-start'] = 50
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-window-size'] = 5
         CONFIG_SETS[id][0]['advice-reuse-stopping-eval-proximity'] = 0.9
 
