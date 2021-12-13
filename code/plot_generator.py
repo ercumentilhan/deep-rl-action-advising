@@ -400,10 +400,10 @@ def generate_pda(summaries_dir, tags):
                     tag == 'Advices_Reused_Correct/All_Long' or \
                     tag == 'Advices_Reused_Percentage' or \
                     tag == 'Advices_Reused_Correct_Percentage':
-                if key != 'AIR' and key != 'SUA' and key != 'SUA-AIR' and key != 'DUA':
+                if key != 'EA' and key != 'RA' and key != 'AIR' and key != 'SUA' and key != 'SUA-AIR' and key != 'DUA':
                     continue
             elif tag == 'Advices_Taken':
-                if key != 'RA' and key != 'AIR' and key != 'SUA' and key != 'SUA-AIR' and key != 'DUA':
+                if key != 'EA' and key != 'RA' and key != 'AIR' and key != 'SUA' and key != 'SUA-AIR' and key != 'DUA':
                     continue
 
             seed_dirs = []
