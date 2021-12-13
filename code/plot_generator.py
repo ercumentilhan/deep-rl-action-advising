@@ -468,7 +468,7 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
     if tag == 'Evaluation/Reward_Real' \
             or tag == 'Exploration_Steps_Taken' \
             or tag == 'Exploration_Steps_Taken_Cumulative':
-        run_idx = ['NA', 'EA', 'AIR', 'SUA', 'SUA-AIR']
+        run_idx = ['NA', 'EA', 'RA', 'AIR', 'SUA', 'SUA-AIR']
     elif tag == 'Advices_Taken':
         run_idx = ['AIR', 'SUA', 'SUA-AIR']
     else:
