@@ -470,9 +470,9 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
             or tag == 'Exploration_Steps_Taken_Cumulative':
         run_idx = ['NA', 'EA', 'RA', 'AIR', 'SUA', 'SUA-AIR']
     elif tag == 'Advices_Taken':
-        run_idx = ['AIR', 'SUA', 'SUA-AIR']
+        run_idx = ['EA', 'RA', 'AIR', 'SUA', 'SUA-AIR']
     else:
-        run_idx = ['AIR', 'SUA', 'SUA-AIR']
+        run_idx = ['EA', 'RA', 'AIR', 'SUA', 'SUA-AIR']
 
     for run_id in run_idx:
         label = labels[run_id]
