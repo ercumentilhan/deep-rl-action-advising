@@ -36,12 +36,15 @@ TAGS = [
     'Evaluation/Reward_Real',
     'Evaluation_B/Reward_Real',
     'Advices_Taken',
-    'Advices_Reused/All'
+    'Advices_Reused/All',
+    'Advices_Reused_Correct/All',
+    'Advices_Reuse_Model_Correct/Cumulative',
+    'Advices_Reuse_Model_Correct/Steps',
 ]
 
 # Multi-plot settings
 # Directory that contain the sub-directories of games with the summary files
-RUNS_DIR_MULTI = 'E:\\All\\'
+RUNS_DIR_MULTI = 'E:\\S\\All\\'
 TAGS_MULTI = [
     'Evaluation/Reward_Real',
     'Advices_Taken',
@@ -73,22 +76,32 @@ def walklevel(some_dir, level=1):
 # ======================================================================================================================
 
 def export_to_csv(input_dir, output_dir, requested_tag):
-    print(input_dir, output_dir, requested_tag)
-    summary_iterator = EventAccumulator(input_dir).Reload()
-    tags = summary_iterator.Tags()['scalars']
-    data = defaultdict(list)
+    print('>>> export_to_csv - ', requested_tag)
+    if requested_tag != 'Advices_Reuse_Model_Correct/Steps':
+        summary_iterator = EventAccumulator(input_dir).Reload()
+        tags = summary_iterator.Tags()['scalars']
+        data = defaultdict(list)
 
-    if requested_tag in tags:
-        steps = [e.step for e in summary_iterator.Scalars(requested_tag)]
-        event = summary_iterator.Scalars(requested_tag)
-        data[requested_tag] = [e.value for e in event]
+        if requested_tag in tags:
+            steps = [e.step for e in summary_iterator.Scalars(requested_tag)]
+            event = summary_iterator.Scalars(requested_tag)
+            data[requested_tag] = [e.value for e in event]
 
-        tags, values = zip(*data.items())
-        np_values = np.array(values)
-        for index, tag in enumerate(tags):
-            tag = tag.replace("/", "-")
-            df = pd.DataFrame(np_values[index], index=steps)
-            df.to_csv(os.path.join(output_dir, tag + '.csv'), header=False)
+            tags, values = zip(*data.items())
+            np_values = np.array(values)
+            for index, tag in enumerate(tags):
+                tag = tag.replace("/", "-")
+                df = pd.DataFrame(np_values[index], index=steps)
+                df.to_csv(os.path.join(output_dir, tag + '.csv'), header=False)
+
+                if tag == 'Advices_Reuse_Model_Correct-Cumulative':
+                    df_values = df.iloc[:, 0].values
+                    df_values[1:] -= df_values[:-1].copy()
+                    df.iloc[:, 0] = df_values
+                    t_resampled = np.linspace(600, 5000000, 2500)
+                    df = df.reindex(df.index.union(t_resampled)).interpolate('values').loc[t_resampled]
+                    df.to_csv(os.path.join(output_dir, 'Advices_Reuse_Model_Correct-Steps' + '.csv'), header=False)
+
 
 # ======================================================================================================================
 
@@ -171,11 +184,15 @@ def generate_plots(summaries_dir, plots_dir, tag):
 def generate_combined_plot(summaries_dir, plots_dir, tag):
     os.makedirs(plots_dir, exist_ok=True)
 
+    print('>>> generate_combined_plot - tag:', tag)
+
     # Plot smoothing span
     if tag == 'Advices_Taken':
         span = 30
     elif tag == 'Advices_Reused/All':
         span = 150
+    elif tag == 'Advices_Reuse_Model_Correct/Steps':
+        span = 200
     else:
         span = 5
 
@@ -187,7 +204,10 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         run_dirs.append(os.path.join(summaries_dir, d))
 
     # [Algos x 5] - per row: Algo Name, Init, inter, last, and total rewards
-    reward_stats = [[j for j in range(5)] for k, _ in enumerate(run_dirs)]
+    if tag == 'Evaluation/Reward_Real':
+        reward_stats = [[j for j in range(5)] for k, _ in enumerate(run_dirs)]
+        reward_stats_stddev = [[j for j in range(5)] for k, _ in enumerate(run_dirs)]
+        reward_stats_stderr = [[j for j in range(5)] for k, _ in enumerate(run_dirs)]
 
     for i, run_dir in enumerate(run_dirs):
         seed_dirs = []
@@ -224,11 +244,15 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
 
         if tag == 'Evaluation/Reward_Real':
             # Set the Algo name
-            reward_stats[i][0] = labels[i] 
+            reward_stats[i][0] = labels[i]
+            reward_stats_stddev[i][0] = labels[i]
+            reward_stats_stderr[i][0] = labels[i]
+
             # Average out
             for k in range(4):
                 reward_stats[i][k+1] = sum(seed_sum[k]) / len(seed_sum[k])
-
+                reward_stats_stddev[i][k+1] = round(np.std(seed_sum[k]), 2)
+                reward_stats_stderr[i][k + 1] = round(stats.sem(seed_sum[k]), 2)
 
         if len(pds_x) > 0:
             min_length = min(lengths)
@@ -239,8 +263,6 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
                 plot_data_x.append(pd_x)
                 plot_data_y.append(pd_y)
 
-            print(run_dir, tag)
-
             pda = pd.DataFrame(plot_data_y, columns=plot_data_x[0])
             pda = pda.ewm(axis=1, span=span).mean()
             pda = pda.melt()
@@ -249,43 +271,54 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         else:
             pda_all.append(None)
 
-    if tag == 'Advices_Taken':
-        fig, ax = plt.subplots(figsize=(12, 4), dpi=150, )
-    else:
-        fig, ax = plt.subplots(figsize=(12, 8), dpi=100, )
-
-    for i, _ in enumerate(pda_all):
-        if pda_all[i] is not None:
-            sns.lineplot(x='variable', y='value', data=pda_all[i], legend='brief', err_style='band',
-                         label=labels[i], ci='sd', linewidth=1)
-
-    if tag == 'Evaluation/Reward_Real':
-        with open(os.path.join(plots_dir,'reward_stats.csv'), 'w', newline='') as f: 
-            write = csv.writer(f) 
-            write.writerows(reward_stats)
-
-    if tag == 'Evaluation/Reward_Real' or tag == 'Evaluation_B/Reward_Real':
-        if TEACHER_SCORE_0 is not None:
-            plt.axhline(y=TEACHER_SCORE_0, color='rosybrown', linestyle='--')
-        if TEACHER_SCORE_1 is not None:
-            plt.axhline(y=TEACHER_SCORE_1, color='darkseagreen', linestyle='--')
-
-    x_lim, y_lim = [None, None], [None, None]
-
-    if tag == 'Advices_Taken' or \
-            tag == 'Advices_Reused/All':
-        y_lim = [-5, None]
-        x_lim = [-10, None]
-
-        modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-"))
+    if not all(v is None for v in pda_all):
 
         if tag == 'Advices_Taken':
-            x_lim = [-10, 250000]
-            modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-") + '_Zoomed')
-    else:
-        if ENV == 'Seaquest':
-            y_lim = [-200, None]
-        modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-"))
+            fig, ax = plt.subplots(figsize=(12, 4), dpi=150, )
+        else:
+            fig, ax = plt.subplots(figsize=(12, 8), dpi=100, )
+
+        for i, _ in enumerate(pda_all):
+            if pda_all[i] is not None:
+                sns.lineplot(x='variable', y='value', data=pda_all[i], legend='brief', err_style='band',
+                             label=labels[i], ci='sd', linewidth=1)
+
+        if tag == 'Evaluation/Reward_Real':
+            with open(os.path.join(plots_dir,'reward_stats.csv'), 'w', newline='') as f:
+                write = csv.writer(f)
+                write.writerows(reward_stats)
+
+            with open(os.path.join(plots_dir,'reward_stats_stddev.csv'), 'w', newline='') as f:
+                write = csv.writer(f)
+                write.writerows(reward_stats_stddev)
+
+            with open(os.path.join(plots_dir,'reward_stats_stderr.csv'), 'w', newline='') as f:
+                write = csv.writer(f)
+                write.writerows(reward_stats_stderr)
+
+        if tag == 'Evaluation/Reward_Real' or tag == 'Evaluation_B/Reward_Real':
+            if TEACHER_SCORE_0 is not None:
+                plt.axhline(y=TEACHER_SCORE_0, color='rosybrown', linestyle='--')
+            if TEACHER_SCORE_1 is not None:
+                plt.axhline(y=TEACHER_SCORE_1, color='darkseagreen', linestyle='--')
+
+        x_lim, y_lim = [None, None], [None, None]
+
+        if tag == 'Advices_Taken' or \
+                tag == 'Advices_Reused/All':
+            y_lim = [-5, None]
+            x_lim = [-10, None]
+
+            modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-"))
+
+            if tag == 'Advices_Taken':
+                x_lim = [-10, 250000]
+                modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-") + '_Zoomed')
+        else:
+            if ENV == 'Seaquest':
+                if tag == 'Evaluation/Reward_Real' or tag == 'Evaluation_B/Reward_Real':
+                    y_lim = [-200, None]
+            modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-"))
 
 # ======================================================================================================================
 
@@ -296,8 +329,6 @@ def modify_and_save_plot(ax, tag, x_lim, y_lim, filename):
     plt.setp(ax.get_legend().get_title(), fontsize='25')
 
     ax_handles, ax_labels = ax.get_legend_handles_labels()
-
-    print(ax_handles, ax_labels)
 
     legend_loc = 'upper left'
     if tag == 'Advices_Taken':
@@ -326,10 +357,7 @@ def generate_pda(summaries_dir, tags):
              'Advices_Reused/All_Long',
              'Advices_Reused_Correct/All_Long']
 
-    print('>>>', summaries_dir)
-
     for tag in tags:
-        print(tag)
         # --------------------------------------------------------------------------------------------------------------
         # Set span here
         span = 20  # Default
@@ -406,15 +434,12 @@ def generate_pda(summaries_dir, tags):
 
         pda_all = {}
         for key, plot_data_y in plot_datas_y.items():
-
-            print(key, span)
-
             if tag == 'Advices_Taken':
                 if key == 'AIR' \
                         or key == 'SUA' \
                         or key == 'SUA-AIR'  \
                         or key == 'DUA' \
-                        or key == 'RA' :
+                        or key == 'RA':
                     span = 5
                 else:
                     span = 1
@@ -434,7 +459,10 @@ def generate_pda(summaries_dir, tags):
 def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range, legend, x_label, y_label, title, text,
                       hide_x_ticks, hide_y_ticks):
 
-    print('>>', name, tag, labels, title)
+    print('>>> plot_in_multiplot - name: {}, tag: {}, labels: {}, title: {}'.format(name, tag, labels, title))
+
+    dict_final = {}
+    dict_auc = {}
 
     # Tag dependent
     if tag == 'Evaluation/Reward_Real' \
@@ -468,8 +496,6 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
             elif label == 'DUA':
                 label = 'DUA'
 
-        print(run_id)
-
         # Compute AUC and Final Value
         if tag == 'Evaluation/Reward_Real':
             n_seeds = 3
@@ -489,8 +515,13 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
             # print('{}: {}'.format(labels[run_id], np.mean(seed_aucs)))
             # print('{}: {}'.format(labels[run_id], np.mean(seed_finals)))
 
-            final_str = '${:.2f} \pm {:.1f}$'.format(round(np.mean(seed_finals), 2), round(np.std(seed_finals), 1))
-            auc_str = '${:.2f} \pm {:.1f}$'.format(round(np.mean(seed_aucs), 2), round(np.std(seed_aucs), 1))
+            # print('tag1', run_id)
+
+            final_str = '${:.2f} \pm {:.2f}$'.format(round(np.mean(seed_finals), 2), round(np.std(seed_finals), 2))
+            auc_str = '${:.2f} \pm {:.2f}$'.format(round(np.mean(seed_aucs), 2), round(np.std(seed_aucs), 2))
+
+            dict_final[run_id] = final_str
+            dict_auc[run_id] = auc_str
 
         if tag == 'Exploration_Steps_Taken_Cumulative' or \
                 tag == 'Advices_Reused_Cumulative/All' or  tag == 'Advices_Reused_Cumulative_Percentage' or\
@@ -504,6 +535,13 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
 
             for i_seed in range(n_seeds):
                 seed_final_values.append(values[i_seed::n_seeds][-1:])
+
+            final_str = '${:.2f} \pm {:.2f}$'.format(round(np.mean(seed_final_values), 2),
+                                                     round(np.std(seed_final_values), 2))
+
+            # print('tag2', run_id)
+
+            dict_final[run_id] = final_str
 
         if 'None' in label or 'NA' in label:
             color = 'darkslategrey'
@@ -528,9 +566,6 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
             elif 'Correct' in label:
                 color = 'tab:green'
 
-            print(run_id)
-            print(pda_all.keys())
-
             graph = sns.lineplot(x='variable', y='value', data=pda_all[run_id], ax=ax, legend=legend,
                                  err_style='band',
                                  label=label, ci='sd', color=color)  # style="variable", markers=True)
@@ -548,6 +583,20 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
             ax.lines[-1].set_linewidth(1.2)
 
         sns.despine()
+
+    # Save dictionaries
+    if dict_final:
+        with open(RUNS_DIR_MULTI + '/' + name + '_' + tag.replace("/", "-") + '_FINAL'+ '.txt', 'w') as f:
+            for key, value in dict_final.items():
+                f.write('%s: %s\n' % (key, value))
+
+    if dict_auc:
+        with open(RUNS_DIR_MULTI + '/' + name + '_' + tag.replace("/", "-") + '_AUC' + '.txt', 'w') as f:
+            for key, value in dict_auc.items():
+                f.write('%s: %s\n' % (key, value))
+
+
+    # if tag == 'Evaluation/Reward_Real':
 
     if tag == 'Evaluation/Reward_Real':
         ax.set_xticks([0, 500000, 1000000, 1500000, 2000000, 2500000, 3000000, 3500000, 4000000, 4500000, 5000000])
@@ -681,8 +730,6 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
                     tag == 'Advices_Reused_Correct_Percentage':
         xlabels = ['{}'.format(x) + '' for x in graph.get_xticks() / 1000000]
 
-        print(tag, xlabels)
-
         xlabels[0] = '0'
         xlabels[1] = ''
         xlabels[3] = ''
@@ -690,8 +737,6 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
         xlabels[7] = ''
         xlabels[9] = ''
         graph.set_xticklabels(xlabels)
-
-        print(xlabels)
 
     elif tag == 'Advices_Taken':
         # xlabels = ['{}'.format(int(x)) + '' for x in graph.get_xticks() / 1000]
@@ -996,9 +1041,11 @@ def generate_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all):
 # ======================================================================================================================
 
 def generate_multi_plots():
+    print('>>> generate_multi_plots...')
     pda_of_tags_all, budget_plots_of_tags_all, labels_of_tags_all = [], [], []
 
     for game in ['Enduro', 'Freeway', 'Pong', 'Qbert', 'Seaquest']:
+        print(game)
         summaries_dir = os.path.join(RUNS_DIR_MULTI, game)
         pda_of_tags, labels_of_tags = generate_pda(summaries_dir, TAGS_MULTI)
         pda_of_tags_all.append(pda_of_tags)
@@ -1013,8 +1060,6 @@ if RUNS_DIR != None or GAME_DIR != None:
     summaries_dir = os.path.join(RUNS_DIR, GAME_DIR)
 else:
     summaries_dir = SUMM_DIR
-
-print(summaries_dir)
 
 if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
     plots_dir = os.path.join(summaries_dir + '_Plots')
