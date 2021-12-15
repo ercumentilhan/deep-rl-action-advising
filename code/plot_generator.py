@@ -1047,6 +1047,7 @@ def generate_multi_plots():
     for game in ['Enduro', 'Freeway', 'Pong', 'Qbert', 'Seaquest']:
         print(game)
         summaries_dir = os.path.join(RUNS_DIR_MULTI, game)
+        generate_csv_files(summaries_dir, TAGS)
         pda_of_tags, labels_of_tags = generate_pda(summaries_dir, TAGS_MULTI)
         pda_of_tags_all.append(pda_of_tags)
         labels_of_tags_all.append(labels_of_tags)
@@ -1067,10 +1068,9 @@ if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
     if os.path.exists(plots_dir):
         shutil.rmtree(plots_dir)
 
-    #generate_csv_files(summaries_dir, TAGS)
-
     generate_multi_plots()
 
-    for tag in TAGS:
-        generate_combined_plot(summaries_dir, plots_dir, tag)
+    # generate_csv_files(summaries_dir, TAGS)
+    #for tag in TAGS:
+    #    generate_combined_plot(summaries_dir, plots_dir, tag)
 
