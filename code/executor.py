@@ -584,6 +584,9 @@ class Executor:
                     if teacher_action is None:
                         teacher_action = self.teacher_agent.get_greedy_action(obs)
 
+                    self.stats.advice_reuse_model_n_evaluations += 1
+                    self.stats.advice_reuse_model_n_evaluations_cum += 1
+
                     if reuse_model_action == teacher_action:
                         self.stats.advice_reuse_model_is_correct += 1
                         self.stats.advice_reuse_model_is_correct_cum += 1
@@ -779,6 +782,9 @@ class Executor:
                 self.stats.advices_used = 0
                 self.stats.advices_reused = 0
                 self.stats.advices_reused_correct = 0
+
+                self.stats.advice_reuse_model_n_evaluations = 0
+                self.stats.advice_reuse_model_is_correct = 0
 
                 self.steps_reward = 0.0
                 self.steps_reward_real = 0.0
