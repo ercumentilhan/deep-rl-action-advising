@@ -892,6 +892,37 @@ def generate_eval_plot(pda_of_tags_all, labels_of_tags_all):
 
 # ======================================================================================================================
 
+def generate_ind_eval_plot(pda_of_tags_all, labels_of_tags_all, game_id, y_range, title):
+
+    os.makedirs(plots_dir, exist_ok=True)
+    sns.set(font_scale=1.3)
+
+    sns.set_style("white")
+
+    fig = plt.figure(figsize=(4 * 1.5, 2.5 * 1.5), dpi=200)
+
+    gs = fig.add_gridspec(1, 1)
+    gs.update(wspace=0.15, hspace=0.2)
+
+    axes = []
+    axes.append(fig.add_subplot(gs[0, 0]))
+
+    tag = 'Evaluation/Reward_Real'
+    pda_s = pda_of_tags_all[game_id][tag]
+    labels = labels_of_tags_all[game_id][tag]
+    plot_in_multiplot(title, tag, axes[0], None, labels, pda_s, y_range, [0, 5000000], False,
+                      x_label='Millions of environment steps', y_label='Evaluation score', title=title,
+                      text=None, hide_x_ticks=False, hide_y_ticks=False)
+
+    plt.tight_layout()
+
+    fig.savefig(RUNS_DIR_MULTI + '/plots_evaluation_' + title + '.png', bbox_inches='tight')
+
+    fig.clear()
+    plt.close(fig)
+
+# ======================================================================================================================
+
 def generate_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all):
 
     os.makedirs(plots_dir, exist_ok=True)
@@ -1040,27 +1071,87 @@ def generate_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all):
 
 # ======================================================================================================================
 
+def generate_ind_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all, game_id, y_ranges, title):
+
+    os.makedirs(plots_dir, exist_ok=True)
+    sns.set(font_scale=1.2)
+
+    sns.set_style("white")
+
+    fig = plt.figure(figsize=(10 * 1.5, 2.5 * 1.5), dpi=200)
+
+    gs = fig.add_gridspec(1, 2)
+    gs.update(wspace=0.2, hspace=0.25)
+
+    axes = []
+    axes.append(fig.add_subplot(gs[0, 0]))
+    axes.append(fig.add_subplot(gs[0, 1]))
+
+    # ------------------------------------------------------------------------------------------------------------------
+
+    tag = 'Advices_Reused/All_Long'
+    pda_s = pda_of_tags_all[game_id][tag]
+    labels = labels_of_tags_all[game_id][tag]
+    plot_in_multiplot(title, tag, axes[0], None, labels, pda_s, y_ranges[0], [0, 5000000], False,
+                      x_label='Millions of environment steps', y_label='# of adv. reused', title='Enduro',
+                      text=None, hide_x_ticks=False, hide_y_ticks=False)
+    axes[0].grid()
+    axes[0].grid()
+
+    tag = 'Advices_Taken'
+    pda_s = pda_of_tags_all[game_id][tag]
+    labels = labels_of_tags_all[game_id][tag]
+    plot_in_multiplot(title, tag, axes[1], None, labels, pda_s, y_ranges[1], [0, 200000], False,
+                      x_label='Millions of environment steps', y_label='# of adv. taken', title=None,
+                      text=None, hide_x_ticks=False, hide_y_ticks=False)
+    axes[1].grid()
+    axes[1].grid()
+
+    plt.tight_layout()
+
+    fig.savefig(RUNS_DIR_MULTI + '/plots_advice_' + title + '.png', bbox_inches='tight')
+
+    fig.clear()
+    plt.close(fig)
+
+# ======================================================================================================================
+
 def generate_multi_plots():
     print('>>> generate_multi_plots...')
     pda_of_tags_all, budget_plots_of_tags_all, labels_of_tags_all = [], [], []
 
-    for game in ['Enduro', 'Freeway', 'Pong', 'Qbert', 'Seaquest']:
+    games = ['Enduro', 'Freeway', 'Pong', 'Qbert', 'Seaquest']
+    y_ranges = [[-10, 1400], [-2, 33], [-22, 16], [-20, 4200], [-100, 10100]]
+    y_ranges_adv = [([0, 18], [0, 110]), ([0, 52], [0, 110]), ([0, 32], [0, 110]), ([0, 55], [0, 110]),
+                    ([0, 14], [0, 110])]
+
+    for i in range(len(games)):
+        game = games[i]
+        game_id = i
+        y_range = y_ranges[i]
+        y_range_adv = y_ranges_adv[i]
+
         print(game)
-        summaries_dir = os.path.join(RUNS_DIR_MULTI, game)
-        generate_csv_files(summaries_dir, TAGS)
-        pda_of_tags, labels_of_tags = generate_pda(summaries_dir, TAGS_MULTI)
+        summaries_dir_multi = os.path.join(RUNS_DIR_MULTI, game)
+        # generate_csv_files(summaries_dir, TAGS)
+        pda_of_tags, labels_of_tags = generate_pda(summaries_dir_multi, TAGS_MULTI)
         pda_of_tags_all.append(pda_of_tags)
         labels_of_tags_all.append(labels_of_tags)
+
+        generate_ind_eval_plot(pda_of_tags_all, labels_of_tags_all, game_id, y_range, game)
+        generate_ind_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all, game_id, y_range_adv, game)
 
     generate_eval_plot(pda_of_tags_all, labels_of_tags_all)
     generate_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all)
 
 # ======================================================================================================================
 
-if RUNS_DIR != None or GAME_DIR != None:
-    summaries_dir = os.path.join(RUNS_DIR, GAME_DIR)
-else:
-    summaries_dir = SUMM_DIR
+# if RUNS_DIR != None or GAME_DIR != None:
+#     summaries_dir = os.path.join(RUNS_DIR, GAME_DIR)
+# else:
+#     summaries_dir = SUMM_DIR
+
+summaries_dir = 'E:\\S\\All\\Pong_Eval'
 
 if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
     plots_dir = os.path.join(summaries_dir + '_Plots')
