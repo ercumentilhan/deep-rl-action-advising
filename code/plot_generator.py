@@ -196,6 +196,8 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         span = 150
     elif tag == 'Advices_Reuse_Model_Correct/Steps':
         span = 200
+    elif tag == 'Teacher_Model_Eval_Steps/Correct':
+        span = 100
     else:
         span = 5
 
