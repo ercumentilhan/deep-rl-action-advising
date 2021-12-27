@@ -38,8 +38,11 @@ TAGS = [
     'Advices_Taken',
     'Advices_Reused/All',
     'Advices_Reused_Correct/All',
-    'Advices_Reuse_Model_Correct/Cumulative',
-    'Advices_Reuse_Model_Correct/Steps',
+    'Teacher_Model_Eval_Steps/Correct',
+    'Teacher_Model_Eval_Cumulative/Correct'
+
+    # 'Advices_Reuse_Model_Correct/Cumulative',
+    # 'Advices_Reuse_Model_Correct/Steps',
 ]
 
 # Multi-plot settings
@@ -94,13 +97,13 @@ def export_to_csv(input_dir, output_dir, requested_tag):
                 df = pd.DataFrame(np_values[index], index=steps)
                 df.to_csv(os.path.join(output_dir, tag + '.csv'), header=False)
 
-                if tag == 'Advices_Reuse_Model_Correct-Cumulative':
-                    df_values = df.iloc[:, 0].values
-                    df_values[1:] -= df_values[:-1].copy()
-                    df.iloc[:, 0] = df_values
-                    t_resampled = np.linspace(600, 5000000, 2500)
-                    df = df.reindex(df.index.union(t_resampled)).interpolate('values').loc[t_resampled]
-                    df.to_csv(os.path.join(output_dir, 'Advices_Reuse_Model_Correct-Steps' + '.csv'), header=False)
+                # if tag == 'Advices_Reuse_Model_Correct-Cumulative':
+                #     df_values = df.iloc[:, 0].values
+                #     df_values[1:] -= df_values[:-1].copy()
+                #     df.iloc[:, 0] = df_values
+                #     t_resampled = np.linspace(600, 5000000, 2500)
+                #     df = df.reindex(df.index.union(t_resampled)).interpolate('values').loc[t_resampled]
+                #     df.to_csv(os.path.join(output_dir, 'Advices_Reuse_Model_Correct-Steps' + '.csv'), header=False)
 
 
 # ======================================================================================================================
