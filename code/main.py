@@ -8,6 +8,7 @@ from executor import Executor
 
 from constants.config_sets.ale import CONFIG_SETS as CONFIG_SETS_ALE
 from constants.config_sets.box2d import CONFIG_SETS as CONFIG_SETS_BOX2D
+from constants.config_sets.gridworld import CONFIG_SETS as CONFIG_SETS_GRIDWORLD
 from constants.config_sets.mape import CONFIG_SETS as CONFIG_SETS_MAPE
 from constants.config_sets.minatar import CONFIG_SETS as CONFIG_SETS_MINATAR
 
@@ -140,6 +141,7 @@ if __name__ == '__main__':
     parser.add_argument('--advice-reuse-probability-final', type=float, default=0)
 
     parser.add_argument('--evaluate-advice-reuse-model', action='store_true', default=False)
+    parser.add_argument('--generate-extra-visualisations', action='store_true', default=False)
 
     # Reuse stopping
     parser.add_argument('--advice-reuse-stopping', action='store_true', default=False)
@@ -163,6 +165,10 @@ if __name__ == '__main__':
         elif 'BOX2D' in arg_vars['env_key']:
             print('Parsing BOX2D config...')
             config = run_utils.config_to_executor_config(CONFIG_SETS_BOX2D[arg_vars['config_set']])
+
+        elif 'GRIDWORLD' in arg_vars['env_key']:
+            print('Parsing GRIDWORLD config...')
+            config = run_utils.config_to_executor_config(CONFIG_SETS_GRIDWORLD[arg_vars['config_set']])
 
         elif 'MAPE' in arg_vars['env_key']:
             print('Parsing MAPE config...')
