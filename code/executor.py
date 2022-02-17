@@ -20,6 +20,7 @@ cv2.ocl.setUseOpenCL(False)
 os.environ['TF_CPP_MIN_LONG_LEVEL'] = '2'
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 
 plt.rcParams.update({'font.size': 14})
 
@@ -36,6 +37,8 @@ class Executor:
         self.config = config
         self.env = env
         self.eval_env = eval_env
+
+        self.config['evaluate_advice_reuse_model'] = True
 
         self.stats = None
 
@@ -63,6 +66,7 @@ class Executor:
         self.copy_scripts_dir = None
         self.videos_dir = None
         self.obs_images_dir = None
+        self.vis_images_dir = None
 
         self.save_summary_path = None
         self.save_model_path = None
@@ -110,15 +114,22 @@ class Executor:
         self.evaluation_scores_windows = [collections.deque(maxlen=self.config['advice_reuse_stopping_eval_window_size']),
                                           collections.deque(maxlen=self.config['advice_reuse_stopping_eval_window_size'])]
 
+        self.visualisation_values = []
+
     # ==================================================================================================================
 
     def render(self, env):
-        if self.config['env_type'] == GRIDWORLD:
+        if self.config['env_type'] == ALE:
+            pass
+        elif self.config['env_type'] == BOX2D:
+            pass
+        elif self.config['env_type'] == GRIDWORLD:
             return env.render()
-        elif self.config['env_type'] == MINATAR:
-            return env.render_state()
         elif self.config['env_type'] == MAPE:
             return env.render('rgb_array')[0]
+        elif self.config['env_type'] == MINATAR:
+            return env.render_state()
+
 
     # ==================================================================================================================
 
@@ -166,6 +177,9 @@ class Executor:
         self.replay_memory_dir = os.path.join(self.runs_local_dir, 'ReplayMemory')
         os.makedirs(self.replay_memory_dir, exist_ok=True)
 
+        self.vis_images_dir = os.path.join(self.runs_local_dir, 'Visualisations')
+        os.makedirs(self.vis_images_dir, exist_ok=True)
+
         self.save_summary_path = os.path.join(self.summaries_dir, self.run_id, self.seed_id)
         self.save_model_path = os.path.join(self.checkpoints_dir, self.run_id, self.seed_id)
         self.save_scripts_path = os.path.join(self.copy_scripts_dir, self.run_id, self.seed_id)
@@ -173,6 +187,7 @@ class Executor:
         self.save_obs_real_images_path = os.path.join(self.obs_images_dir, self.run_id, self.seed_id, 'Real')
         self.save_obs_agent_images_path = os.path.join(self.obs_images_dir, self.run_id, self.seed_id, 'Agent')
         self.save_replay_memory_path = os.path.join(self.replay_memory_dir, self.run_id, self.seed_id)
+        self.save_vis_images_path = os.path.join(self.vis_images_dir, self.run_id, self.seed_id)
 
         if self.config['save_models']:
             os.makedirs(self.save_model_path, exist_ok=True)
@@ -185,6 +200,8 @@ class Executor:
         if self.config['save_obs_images']:
             os.makedirs(self.save_obs_real_images_path, exist_ok=True)
             os.makedirs(self.save_obs_agent_images_path, exist_ok=True)
+
+        os.makedirs(self.save_vis_images_path, exist_ok=True)
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -221,15 +238,7 @@ class Executor:
         self.config['env_obs_form'] = env_info[2]
         self.config['env_states_are_countable'] = env_info[3]
 
-        if self.config['env_type'] == GRIDWORLD:
-            self.config['env_obs_dims'] = self.env.obs_space.shape
-            self.config['env_n_actions'] = self.env.action_space.n
-
-        elif self.config['env_type'] == MINATAR:
-            self.config['env_obs_dims'] = self.env.state_shape()
-            self.config['env_n_actions'] = self.env.num_actions()
-
-        elif self.config['env_type'] == ALE:
+        if self.config['env_type'] == ALE:
             self.config['env_obs_dims'] = self.env.observation_space.shape
             self.config['env_n_actions'] = self.env.action_space.n
             self.config['env_obs_dims'] = (84, 84, 4)  # If LazyFrames are enabled
@@ -238,9 +247,17 @@ class Executor:
             self.config['env_obs_dims'] = self.env.observation_space.shape
             self.config['env_n_actions'] = self.env.action_space.n
 
+        elif self.config['env_type'] == GRIDWORLD:
+            self.config['env_obs_dims'] = self.env.obs_space.shape
+            self.config['env_n_actions'] = self.env.action_space.n
+
         elif self.config['env_type'] == MAPE:
             self.config['env_obs_dims'] = self.env.observation_space[0].shape
             self.config['env_n_actions'] = self.env.action_space[0].n
+
+        elif self.config['env_type'] == MINATAR:
+            self.config['env_obs_dims'] = self.env.state_shape()
+            self.config['env_n_actions'] = self.env.num_actions()
 
         print('Environment')
         print('Key (name):', self.config['env_key'])
@@ -248,6 +265,21 @@ class Executor:
         print('# of actions:', self.config['env_n_actions'])
 
         self.config['rm_extra_content'] = ['source', 'expert_action', 'preserve']
+
+        # --------------------------------------------------------------------------------------------------------------
+
+        if self.config['env_type'] == GRIDWORLD:
+            height = self.env.height
+            width =  self.env.width
+            n_action = self.config['env_n_actions']
+
+            self.visualisation_values.append(np.zeros((height, width), dtype=np.float64))  # uncertainty
+            # self.visualisation_values.append(np.zeros((height, width), dtype=np.int))  # state visitation all
+            self.visualisation_values.append(np.zeros((height, width), dtype=np.int))  # self
+            self.visualisation_values.append(np.zeros((height, width), dtype=np.int))  # teacher
+            self.visualisation_values.append(np.zeros((height, width), dtype=np.int))  # reuse
+
+            self.visualisation_values.append(np.zeros((height, width), dtype=np.float64))  # td-error
 
         # --------------------------------------------------------------------------------------------------------------
         # Setup student agent
@@ -297,21 +329,22 @@ class Executor:
         # Initialise the teacher agent
 
         if self.config['load_teacher']:
-            print('Teacher Key:', self.config['env_key'] + '-' + str(self.config['teacher_level']))
-            teacher_info = TEACHER[self.config['env_key'] + '-' + str(self.config['teacher_level'])]
-            self.config['teacher_id'] = teacher_info[0]
-            self.config['teacher_model_structure'] = teacher_info[3]
+            if self.config['env_type'] != GRIDWORLD:
+                print('Teacher Key:', self.config['env_key'] + '-' + str(self.config['teacher_level']))
+                teacher_info = TEACHER[self.config['env_key'] + '-' + str(self.config['teacher_level'])]
+                self.config['teacher_id'] = teacher_info[0]
+                self.config['teacher_model_structure'] = teacher_info[3]
 
-            # Teacher is assumed to be generated with epsilon greedy model
-            import copy
-            teacher_config = copy.deepcopy(self.config)
-            teacher_config['dqn_type'] = 'egreedy'
-            teacher_config['dqn_dropout'] = False
-            self.teacher_agent = EpsilonGreedyDQN(self.config['teacher_id'], teacher_config, self.session,
-                                                             eps_start=0.0, eps_final=0.0, eps_steps=1,
-                                                             stats=self.stats,
-                                                             demonstrations_datasets=(),
-                                                  network_naming_structure_v1=self.config['teacher_model_structure'] == 0)
+                # Teacher is assumed to be generated with epsilon greedy model
+                import copy
+                teacher_config = copy.deepcopy(self.config)
+                teacher_config['dqn_type'] = 'egreedy'
+                teacher_config['dqn_dropout'] = False
+                self.teacher_agent = EpsilonGreedyDQN(self.config['teacher_id'], teacher_config, self.session,
+                                                                 eps_start=0.0, eps_final=0.0, eps_steps=1,
+                                                                 stats=self.stats,
+                                                                 demonstrations_datasets=(),
+                                                      network_naming_structure_v1=self.config['teacher_model_structure'] == 0)
 
         # --------------------------------------------------------------------------------------------------------------
         # Initialise the behavioural cloning module (for teacher imitation)
@@ -358,9 +391,10 @@ class Executor:
         # --------------------------------------------------------------------------------------------------------------
         # Restore the teacher model from a saved checkpoint
         if self.config['load_teacher']:
-            print('Restoring the teacher model...')
-            teacher_info = TEACHER[self.config['env_key'] + '-' + str(self.config['teacher_level'])]
-            self.teacher_agent.restore(self.checkpoints_dir, teacher_info[0] + '/' + teacher_info[1], teacher_info[2])
+            if self.config['env_type'] != GRIDWORLD:
+                print('Restoring the teacher model...')
+                teacher_info = TEACHER[self.config['env_key'] + '-' + str(self.config['teacher_level'])]
+                self.teacher_agent.restore(self.checkpoints_dir, teacher_info[0] + '/' + teacher_info[1], teacher_info[2])
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -416,10 +450,14 @@ class Executor:
             self_action = None
             teacher_action = None
             action = None
+            action_source = 0  # 0: self, 1: teacher, 2: teacher imitation
 
             if self.config['execute_teacher_policy']:
                 if teacher_action is None:
-                    teacher_action = self.teacher_agent.get_greedy_action(obs)
+                    if self.config['env_type'] == GRIDWORLD:
+                        teacher_action = self.env.optimal_action()
+                    else:
+                        teacher_action = self.teacher_agent.get_greedy_action(obs)
 
                 action = teacher_action
                 action_is_explorative = False
@@ -507,8 +545,12 @@ class Executor:
                         advice_collection_occurred = True
 
             if advice_collection_occurred:
-                teacher_action = self.teacher_agent.get_greedy_action(obs)
+                if self.config['env_type'] == GRIDWORLD:
+                    teacher_action = self.env.optimal_action()
+                else:
+                    teacher_action = self.teacher_agent.get_greedy_action(obs)
                 action = teacher_action
+                action_source = 1
 
                 if self.config['mistake_correction_mode'] and action == self_action:
                     pass
@@ -582,7 +624,10 @@ class Executor:
                     reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
 
                     if teacher_action is None:
-                        teacher_action = self.teacher_agent.get_greedy_action(obs)
+                        if self.config['env_type'] == GRIDWORLD:
+                            teacher_action = self.env.optimal_action()
+                        else:
+                            teacher_action = self.teacher_agent.get_greedy_action(obs)
 
                     self.stats.advice_reuse_model_n_evaluations += 1
                     self.stats.advice_reuse_model_n_evaluations_cum += 1
@@ -608,6 +653,7 @@ class Executor:
                     reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
 
                 action = reuse_model_action
+                action_source = 2
 
                 self.stats.advices_reused += 1
                 self.stats.advices_reused_cum += 1
@@ -616,7 +662,10 @@ class Executor:
                 self.stats.advices_reused_ep_cum += 1
 
                 if teacher_action is None:
-                    teacher_action = self.teacher_agent.get_greedy_action(obs)
+                    if self.config['env_type'] == GRIDWORLD:
+                        teacher_action = self.env.optimal_action()
+                    else:
+                        teacher_action = self.teacher_agent.get_greedy_action(obs)
 
                 if action == teacher_action:
                     self.stats.advices_reused_correct += 1
@@ -629,31 +678,41 @@ class Executor:
             if action is None:
                 action = self_action
 
-            if advice_collection_occurred:
-                source = 1
-            else:
-                source = 0
-
             # ----------------------------------------------------------------------------------------------------------
 
             # if self.action_advising_method == 'state_novelty':
             #    self.student_agent_rnd.train_model(obs, loss_id=0, is_batch=False, normalize=True)
 
             # ----------------------------------------------------------------------------------------------------------
+
+            # Record visualisation data
+            if self.config['env_type'] == GRIDWORLD:
+                pos = ((self.env.height - 1) - self.env.state.agent_pos[0], self.env.state.agent_pos[1])
+
+                # Total
+                # self.visualisation_values[0][pos[0]][pos[1]] += 1
+
+                if action_source == 0:  # Self
+                    self.visualisation_values[1][pos[0]][pos[1]] += 1
+                elif action_source == 1:  # Teacher
+                    self.visualisation_values[2][pos[0]][pos[1]] += 1
+                elif action_source == 2:  # Teacher Imitation
+                    self.visualisation_values[3][pos[0]][pos[1]] += 1
+
+            # ----------------------------------------------------------------------------------------------------------
             # Execute action
 
             obs_next, reward, reward_real, done = None, None, None, None
 
-            if self.config['env_type'] == MINATAR:
-                reward, done = self.env.act(action)
-                reward_real = reward
-                obs_next = self.env.state()
-
-            elif self.config['env_type'] == ALE:
+            if self.config['env_type'] == ALE:
                 obs_next, reward, done, info, reward_real = self.env.step(action)
 
             elif self.config['env_type'] == BOX2D:
                 obs_next, reward, done, info = self.env.step(action)
+                reward_real = reward
+
+            elif self.config['env_type'] == GRIDWORLD:
+                obs_next, reward, done = self.env.step(action)
                 reward_real = reward
 
             elif self.config['env_type'] == MAPE:
@@ -661,29 +720,56 @@ class Executor:
                 obs_next, reward, done = obs_next_n[0], reward_n[0], done_n[0]
                 reward_real = info_n['n'][0]
 
+            elif self.config['env_type'] == MINATAR:
+                reward, done = self.env.act(action)
+                reward_real = reward
+                obs_next = self.env.state()
+
+            # ----------------------------------------------------------------------------------------------------------
+
+            if self.config['env_type'] == GRIDWORLD and self.config['generate_extra_visualisations'] and \
+                    self.stats.n_env_steps == -10:
+                    #self.stats.n_env_steps % 50000 == 0:
+
+                if self.config['dqn_twin'] and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init']:
+                    height = self.env.height
+
+                    for n in range(len(self.env.passage_positions[0][0])):
+                        y = self.env.passage_positions[0][0][n]
+                        x = self.env.passage_positions[0][1][n]
+
+                        y_inv = (height - 1) - y
+                        obs_sample = self.env.generate_obs(0, (y, x))
+                        obs_uc = self.dqn_twin.get_uncertainty(obs_sample)[0] * 100.0
+
+                        self.visualisation_values[0][y_inv][x] = obs_uc
+
+
+                generate_grid_visualisation(self.env, self.config, self.save_vis_images_path,
+                                            self.stats.n_env_steps,  self.visualisation_values)
+
             transition = {
                 'obs': obs,
                 'action': action,
                 'reward': reward,
                 'obs_next': obs_next,
                 'done': done,
-                'source': source,
-                'expert_action': None,  # self.teacher_agent.get_greedy_action(obs) - For debugging
+                'source': action_source,
+                'expert_action': teacher_action,
                 'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
             }
 
             if render:
                 if self.config['env_type'] == ALE:
                     self.video_recorder.capture_frame()
-
                 elif self.config['env_type'] == BOX2D:
                     self.video_recorder.capture_frame()
-
-                elif self.config['env_type'] == MINATAR:
+                elif self.config['env_type'] == GRIDWORLD:
                     self.obs_images.append(self.render(self.env))
-
                 elif self.config['env_type'] == MAPE:
                     self.obs_images.append(self.env.render('rgb_array')[0])
+                elif self.config['env_type'] == MINATAR:
+                    self.obs_images.append(self.render(self.env))
 
             self.episode_reward += reward
             self.episode_reward_real += reward_real
@@ -752,13 +838,23 @@ class Executor:
                 print('{}'.format(self.stats.n_env_steps))
 
                 if render:
-                    if self.config['env_type'] == ALE or \
-                            self.config['env_type'] == BOX2D:
+                    if self.config['env_type'] == ALE:
                         self.video_recorder.close()
                         self.video_recorder.enabled = False
 
-                    elif self.config['env_type'] == MINATAR or \
-                            self.config['env_type'] == MAPE:
+                    elif self.config['env_type'] == BOX2D:
+                        self.video_recorder.close()
+                        self.video_recorder.enabled = False
+
+                    elif self.config['env_type'] == GRIDWORLD:
+                        write_video(self.obs_images, self.save_videos_path, '{}_{}'.format(
+                            str(self.stats.n_episodes - 1), str(self.stats.n_env_steps - self.episode_duration)))
+
+                    elif self.config['env_type'] == MAPE:
+                        write_video(self.obs_images, self.save_videos_path, '{}_{}'.format(
+                            str(self.stats.n_episodes - 1), str(self.stats.n_env_steps - self.episode_duration)))
+
+                    elif self.config['env_type'] == MINATAR:
                         write_video(self.obs_images, self.save_videos_path, '{}_{}'.format(
                             str(self.stats.n_episodes - 1), str(self.stats.n_env_steps - self.episode_duration)))
 
@@ -856,34 +952,52 @@ class Executor:
         render = self.stats.n_episodes % self.config['visualization_period'] == 0 and self.config['visualize_videos']
 
         if render:
-            if self.config['env_type'] == ALE or self.config['env_type'] == BOX2D:
+            if self.config['env_type'] == ALE:
                 self.video_recorder = gym_video_recorder. \
                     VideoRecorder(self.env,
                                   base_path=os.path.join(self.save_videos_path, '{}_{}'.format(
                                       str(self.stats.n_episodes), str(self.stats.n_env_steps))))
 
+            elif self.config['env_type'] == BOX2D:
+                self.video_recorder = gym_video_recorder. \
+                    VideoRecorder(self.env,
+                                  base_path=os.path.join(self.save_videos_path, '{}_{}'.format(
+                                      str(self.stats.n_episodes), str(self.stats.n_env_steps))))
+
+            elif self.config['env_type'] == GRIDWORLD:
+                pass
+            elif self.config['env_type'] == MAPE:
+                pass
+            elif self.config['env_type'] == MINATAR:
+                pass
+
         self.obs_images.clear()
 
         obs = None
-        if self.config['env_type'] == GRIDWORLD:
-            obs = self.env.reset()
-        elif self.config['env_type'] == MINATAR:
-            self.env.reset()
-            obs = self.env.state()
-        elif self.config['env_type'] == ALE:
+
+        if self.config['env_type'] == ALE:
             obs = self.env.reset()
         elif self.config['env_type'] == BOX2D:
             obs = self.env.reset()
+        elif self.config['env_type'] == GRIDWORLD:
+            obs = self.env.reset()
         elif self.config['env_type'] == MAPE:
             obs = self.env.reset()[0]
+        elif self.config['env_type'] == MINATAR:
+            self.env.reset()
+            obs = self.env.state()
 
         if render:
-            if self.config['env_type'] == ALE or self.config['env_type'] == BOX2D:
+            if self.config['env_type'] == ALE:
                 self.video_recorder.capture_frame()
-            elif self.config['env_type'] == MINATAR:
+            elif self.config['env_type'] == BOX2D:
+                self.video_recorder.capture_frame()
+            elif self.config['env_type'] == GRIDWORLD:
                 self.obs_images.append(self.render(self.env))
             elif self.config['env_type'] == MAPE:
                 self.obs_images.append(self.env.render('rgb_array', visible=False)[0])
+            elif self.config['env_type'] == MINATAR:
+                self.obs_images.append(self.render(self.env))
 
         if self.config['advice_reuse_method'] == 'none':
             self.reuse_enabled = False
@@ -914,42 +1028,53 @@ class Executor:
         eval_advices_reused = 0
         eval_advices_reused_correct = 0
 
-        if self.config['env_type'] == GRIDWORLD or \
-                self.config['env_type'] == MINATAR:
-            self.eval_env.set_random_state(self.config['env_evaluation_seed'])
-        elif self.config['env_type'] == ALE or \
-                self.config['env_type'] == BOX2D:
+        if self.config['env_type'] == ALE:
             self.eval_env.seed(self.config['env_evaluation_seed'])
+        elif self.config['env_type'] == BOX2D:
+            self.eval_env.seed(self.config['env_evaluation_seed'])
+        elif self.config['env_type'] == GRIDWORLD:
+            self.eval_env.set_random_state(self.config['env_evaluation_seed'])
         elif self.config['env_type'] == MAPE:
             self.eval_env.set_world_random_state(self.config['env_evaluation_seed'])
+        elif self.config['env_type'] == MINATAR:
+            self.eval_env.set_random_state(self.config['env_evaluation_seed'])
 
         if eval_render:
-            if self.config['env_type'] == ALE or \
-                    self.config['env_type'] == BOX2D:
+            if self.config['env_type'] == ALE:
                 video_capture_eval = gym_video_recorder. \
                     VideoRecorder(self.eval_env, base_path=
                 os.path.join(self.save_videos_path,
                              'E_{}_{}'.format(str(self.stats.n_episodes), str(self.stats.n_env_steps))))
 
+            elif self.config['env_type'] == BOX2D:
+                video_capture_eval = gym_video_recorder. \
+                    VideoRecorder(self.eval_env, base_path=
+                os.path.join(self.save_videos_path,
+                             'E_{}_{}'.format(str(self.stats.n_episodes), str(self.stats.n_env_steps))))
+
+            elif self.config['env_type'] == GRIDWORLD:
+                pass
+            elif self.config['env_type'] == MAPE:
+                pass
+            elif self.config['env_type'] == MINATAR:
+                pass
+
         for i_eval_trial in range(self.config['n_evaluation_trials']):
             eval_obs_images = []
 
             eval_obs = None
-            if self.config['env_type'] == GRIDWORLD:
-                eval_obs = self.eval_env.reset()
 
+            if self.config['env_type'] == ALE:
+                eval_obs = self.eval_env.reset()
+            elif self.config['env_type'] == BOX2D:
+                eval_obs = self.eval_env.reset()
+            elif self.config['env_type'] == GRIDWORLD:
+                eval_obs = self.eval_env.reset()
+            elif self.config['env_type'] == MAPE:
+                eval_obs = self.eval_env.reset()[0]
             elif self.config['env_type'] == MINATAR:
                 self.eval_env.reset()
                 eval_obs = self.eval_env.state().astype(dtype=np.float32)
-
-            elif self.config['env_type'] == ALE:
-                eval_obs = self.eval_env.reset()
-
-            elif self.config['env_type'] == BOX2D:
-                eval_obs = self.eval_env.reset()
-
-            elif self.config['env_type'] == MAPE:
-                eval_obs = self.eval_env.reset()[0]
 
             eval_episode_reward_real = 0.0
             eval_episode_reward = 0.0
@@ -957,24 +1082,42 @@ class Executor:
 
             while True:
                 if eval_render:
-                    if self.config['env_type'] == GRIDWORLD or self.config['env_type'] == MINATAR:
-                        eval_obs_images.append(self.render(self.eval_env))
-                    elif self.config['env_type'] == ALE or self.config['env_type'] == BOX2D:
+                    if self.config['env_type'] == ALE:
                         video_capture_eval.capture_frame()
+                    elif self.config['env_type'] == BOX2D:
+                        video_capture_eval.capture_frame()
+                    elif self.config['env_type'] == GRIDWORLD:
+                        eval_obs_images.append(self.render(self.eval_env))
                     elif self.config['env_type'] == MAPE:
                         eval_obs_images.append(self.eval_env.render('rgb_array', visible=False)[0])
+                    elif self.config['env_type'] == MINATAR:
+                        eval_obs_images.append(self.render(self.eval_env))
 
                 eval_action = None
+                eval_teacher_action = None
 
                 if self.config['execute_teacher_policy']:
-                    eval_action = self.teacher_agent.get_greedy_action(eval_obs)
+                    if eval_teacher_action is None:
+                        if self.config['env_type'] == GRIDWORLD:
+                            eval_teacher_action = self.env.optimal_action()
+                        else:
+                            eval_teacher_action = self.teacher_agent.get_greedy_action(eval_obs)
+
+                    eval_action = eval_teacher_action
                 else:
                     if utilise_advice_reuse:
                         eval_action = self.utilise_advice_reuse(eval_obs)
 
                         if eval_action is not None:
                             eval_advices_reused += 1
-                            if eval_action == self.teacher_agent.get_greedy_action(eval_obs):
+
+                            if eval_teacher_action is None:
+                                if self.config['env_type'] == GRIDWORLD:
+                                    eval_teacher_action = self.env.optimal_action()
+                                else:
+                                    eval_teacher_action = self.teacher_agent.get_greedy_action(eval_obs)
+
+                            if eval_action == eval_teacher_action:
                                 eval_advices_reused_correct += 1
 
                     if not utilise_advice_reuse or eval_action is None:
@@ -982,12 +1125,7 @@ class Executor:
 
                 eval_obs_next, eval_reward, eval_done = None, None, None
 
-                if self.config['env_type'] == MINATAR:
-                    eval_reward, eval_done = self.eval_env.act(eval_action)
-                    eval_obs_next = self.eval_env.state().astype(dtype=np.float32)
-                    eval_real_reward = eval_reward
-
-                elif self.config['env_type'] == ALE:
+                if self.config['env_type'] == ALE:
                     eval_obs_next, eval_reward, eval_done, eval_info, eval_real_reward \
                         = self.eval_env.step(eval_action)
 
@@ -995,10 +1133,19 @@ class Executor:
                     eval_obs_next, eval_reward, eval_done, eval_info = self.eval_env.step(eval_action)
                     eval_real_reward = eval_reward
 
+                elif self.config['env_type'] == GRIDWORLD:
+                    eval_obs_next, eval_reward, eval_done = self.eval_env.step(eval_action)
+                    eval_real_reward = eval_reward
+
                 elif self.config['env_type'] == MAPE:
                     eval_obs_next_n, eval_reward_n, eval_done_n, eval_info_n = self.eval_env.step([eval_action])
                     eval_obs_next, eval_reward, eval_done = eval_obs_next_n[0], eval_reward_n[0], eval_done_n[0]
                     eval_real_reward = eval_info_n['n'][0]
+
+                elif self.config['env_type'] == MINATAR:
+                    eval_reward, eval_done = self.eval_env.act(eval_action)
+                    eval_obs_next = self.eval_env.state().astype(dtype=np.float32)
+                    eval_real_reward = eval_reward
 
                 eval_episode_reward_real += eval_real_reward
                 eval_episode_reward += eval_reward
@@ -1011,18 +1158,30 @@ class Executor:
 
                 if eval_done:
                     if eval_render:
-                        if self.config['env_type'] == GRIDWORLD or \
-                                self.config['env_type'] == MINATAR or \
-                                self.config['env_type'] == MAPE:
-                            eval_obs_images.append(self.render(self.eval_env))
-                            self.write_video(eval_obs_images, self.save_videos_path,
-                                             'E_{}_{}'.format(str(self.stats.n_episodes), str(self.stats.n_env_steps)))
-
-                            eval_obs_images.clear()
-                        elif self.config['env_type'] == ALE or self.config['env_type'] == BOX2D:
+                        if self.config['env_type'] == ALE:
                             video_capture_eval.capture_frame()
                             video_capture_eval.close()
                             video_capture_eval.enabled = False
+
+                        elif self.config['env_type'] == BOX2D:
+                            video_capture_eval.capture_frame()
+                            video_capture_eval.close()
+                            video_capture_eval.enabled = False
+
+                        elif self.config['env_type'] == GRIDWORLD:
+                            eval_obs_images.append(self.render(self.eval_env))
+                            write_video(eval_obs_images, self.save_videos_path,
+                                             'E_{}_{}'.format(str(self.stats.n_episodes), str(self.stats.n_env_steps)))
+
+                        elif self.config['env_type'] == MAPE:
+                            eval_obs_images.append(self.render(self.eval_env))
+                            write_video(eval_obs_images, self.save_videos_path,
+                                             'E_{}_{}'.format(str(self.stats.n_episodes), str(self.stats.n_env_steps)))
+
+                        elif self.config['env_type'] == MINATAR:
+                            eval_obs_images.append(self.render(self.eval_env))
+                            write_video(eval_obs_images, self.save_videos_path,
+                                             'E_{}_{}'.format(str(self.stats.n_episodes), str(self.stats.n_env_steps)))
 
                         eval_render = False
 
@@ -1236,3 +1395,147 @@ def evaluate_behavioural_cloner(bc_model):
     print('')
 
     return np.percentile(uc_values_correct, 90), accuracy
+
+# ======================================================================================================================
+
+def singlematrix(dims, middle_val, ax=None, triplotkw={}, tripcolorkw={}):
+    if not ax:
+        ax = plt.gca()
+    n = middle_val.shape[0]
+    m = middle_val.shape[1]
+    a = np.array([[0, 0], [0, 1], [.5, .5], [1, 0], [1, 1]])
+    tr = np.array([[0, 1, 2], [0, 2, 3], [2, 3, 4], [1, 2, 4]])
+    A = np.zeros((n * m * 5, 2))
+    Tr = np.zeros((n * m * 4, 3))
+    for i in range(n):
+        for j in range(m):
+            k = i * m + j
+            A[k * 5:(k + 1) * 5, :] = np.c_[a[:, 0] + j, a[:, 1] + i]
+            Tr[k * 4:(k + 1) * 4, :] = tr + k * 5
+
+    C = np.c_[middle_val.flatten(), middle_val.flatten(), middle_val.flatten(), middle_val.flatten()].flatten()
+
+    tripcolor = ax.tripcolor(A[:, 0], A[:, 1], Tr, facecolors=C, **tripcolorkw)
+
+    height = dims[0]
+    width = dims[1]
+    for y in range(height):
+        for x in range(width):
+            start = 5 * (y * height + x)
+            A[[start, start + 2], :] = None
+
+    ax.triplot(A[:, 0], A[:, 1], Tr, **triplotkw)
+    return tripcolor
+
+# ======================================================================================================================
+
+def quadruplematrix(dims, left_val, down_val, right_val, up_val, ax=None, triplotkw={}, tripcolorkw={}):
+    if not ax:
+        ax = plt.gca()
+    n = left_val.shape[0]
+    m = left_val.shape[1]
+    a = np.array([[0, 0], [0, 1], [.5, .5], [1, 0], [1, 1]])
+    tr = np.array([[0, 1, 2], [0, 2, 3], [2, 3, 4], [1, 2, 4]])
+    A = np.zeros((n * m * 5, 2))
+    Tr = np.zeros((n * m * 4, 3))
+    for i in range(n):
+        for j in range(m):
+            k = i * m + j
+            A[k * 5:(k + 1) * 5, :] = np.c_[a[:, 0] + j, a[:, 1] + i]
+            Tr[k * 4:(k + 1) * 4, :] = tr + k * 5
+
+    C = np.c_[left_val.flatten(), down_val.flatten(), right_val.flatten(), up_val.flatten()].flatten()
+
+    tripcolor = ax.tripcolor(A[:, 0], A[:, 1], Tr, facecolors=C, **tripcolorkw)
+
+    height = dims[0]
+    width = dims[1]
+    for y in range(height):
+        #y_inv = (height - 1) - y
+        for x in range(width):
+            #if grid[y_inv][x] == 1:
+            start = 5 * (y * height + x)
+            A[[start, start + 2], :] = None
+
+    ax.triplot(A[:, 0], A[:, 1], Tr, **triplotkw)
+    return tripcolor
+
+# ======================================================================================================================
+
+def generate_grid_visualisation(env, config, save_path, step_number, values):
+    height = env.height
+    width = env.width
+
+    fig, ax = plt.subplots(figsize=(28, 7), dpi=120, nrows=1, ncols=4)
+
+    ax = np.expand_dims(ax, axis=0)
+
+    ax[0][0].set_title('Uncertainty')
+    ax[0][1].set_title('Student Actions')
+    ax[0][2].set_title('Teacher Actions')
+    ax[0][3].set_title('Teacher Clone Actions')
+
+    ax_idx = [(0, 0), (0, 1), (0, 2), (0, 3)]
+
+    for v in range(4):
+        if v == 0:
+            cmap_str = 'coolwarm'
+        else:
+            cmap_str = 'RdYlGn'
+
+        singlematrix((height, width), values[v], ax=ax[ax_idx[v][0]][ax_idx[v][1]],
+                     triplotkw={"color": "k", "lw": 1}, tripcolorkw={'cmap': cmap_str})
+
+        ax[ax_idx[v][0]][ax_idx[v][1]].margins(0)
+        ax[ax_idx[v][0]][ax_idx[v][1]].set_aspect("equal")
+
+        for y in range(height):
+            for x in range(width):
+                if y == 0 and x == 8:
+                    continue
+                y_inv = (height - 1) - y
+                if env.grid[0][y][x] == 0:
+                    if v == 0:  # Uncertainty
+                        ax[ax_idx[v][0]][ax_idx[v][1]].text(x + 0.5, y_inv + 0.5,
+                                                            "{0:.3f}".format(values[v][y_inv, x]),
+                                                            ha="center", va="center", color="k")
+                    else:
+                        ax[ax_idx[v][0]][ax_idx[v][1]].text(x + 0.5, y_inv + 0.5,
+                                                        "{}".format(values[v][y_inv, x]),
+                                                        ha="center", va="center", color="k")
+
+        for y in range(height):
+            for x in range(width):
+                y_inv = (height - 1) - y
+                if env.grid[0][y][x] == 1:
+                    ax[ax_idx[v][0]][ax_idx[v][1]].add_patch(
+                        patches.Rectangle(
+                            (x, y_inv),  # (x,y)
+                            1.0,  # width
+                            1.0,  # height
+                            fill=True,
+                            color='darkslategrey'
+                        )
+                    )
+
+        # Goal position:
+        ax[ax_idx[v][0]][ax_idx[v][1]].add_patch(
+            patches.Rectangle(
+                (8, 8),  # (x,y)
+                1.0,  # width
+                1.0,  # height
+                fill=True,
+                color='teal'
+            )
+        )
+
+    for ax_i in range(1):
+        for ax_j in range(4):
+            ax[ax_i][ax_j].set_xticks([])
+            ax[ax_i][ax_j].set_yticks([])
+
+    fig.tight_layout(rect=[0, 0.0, 1, 0.95])
+    plt.savefig(os.path.join(save_path, str(step_number)+'.jpg'))
+
+    fig.clear()
+    plt.close(fig)
