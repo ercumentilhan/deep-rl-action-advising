@@ -2,6 +2,17 @@
 # A predefined option can be run as follows (1000 for Pong with seed 0, for instance):
 # bc_base.py --env-key ALE-Pong --config-set 1000 --seed 0
 
+# ID Structure: <Method Identifier + Subversion> & <Teacher Level> & <Budget>
+# [Example] Early Advising with 100k budget and competent teacher: 20011
+#
+# <Teacher Level>
+# 0: Incompetent
+# 1: Competent
+#
+# <Budget>
+# 0: 25000
+# 1: 100000
+# 2: 12500
 
 def generate_config():
     config = {0: {}, 1: {}}
@@ -148,21 +159,6 @@ BUDGET_OPTIONS = [25000, 100000, 12500]
 TEACHER_LEVEL_OPTIONS = [0, 1]
 
 CONFIG_SETS = {}
-
-# ----------------------------------------------------------------------------------------------------------------------
-
-# ID Structure: <Method Identifier + Subversion> & <Teacher Level> & <Budget>
-# [Example] Early Advising with 100k budget and competent teacher: 20011
-#
-# <Teacher Level>
-# 0: Incompetent
-# 1: Competent
-#
-# <Budget>
-# 0: 25000
-# 1: 100000
-# 2: 12500
-
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Generate demonstrator (Long training)
