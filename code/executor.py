@@ -38,8 +38,6 @@ class Executor:
         self.env = env
         self.eval_env = eval_env
 
-        self.config['evaluate_advice_reuse_model'] = True
-
         self.stats = None
 
         self.student_agent = None
