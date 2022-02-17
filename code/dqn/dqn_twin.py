@@ -67,16 +67,17 @@ class DQNTwin(object):
     def conv_layers(self, scope, inputs):
         if self.config['env_type'] == GRIDWORLD or \
                 self.config['env_type'] == MINATAR:
-            layer_1 = tf.compat.v1.layers.conv2d(inputs=inputs,
-                                                 filters=16,
-                                                 kernel_size=(3, 3),
-                                                 strides=(1, 1),
-                                                 padding='VALID',
-                                                 kernel_initializer=tf.keras.initializers.VarianceScaling(),
-                                                 activation=tf.nn.relu,
-                                                 name='CONV_LAYER_1')
-            output = tf.compat.v1.layers.flatten(layer_1)
-            return output
+            with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
+                layer_1 = tf.compat.v1.layers.conv2d(inputs=inputs,
+                                                     filters=16,
+                                                     kernel_size=(3, 3),
+                                                     strides=(1, 1),
+                                                     padding='VALID',
+                                                     kernel_initializer=tf.keras.initializers.VarianceScaling(),
+                                                     activation=tf.nn.relu,
+                                                     name='CONV_LAYER_1')
+                output = tf.compat.v1.layers.flatten(layer_1)
+                return output
 
         elif self.config['env_type'] == ALE:
             with tf.compat.v1.variable_scope(scope, reuse=tf.compat.v1.AUTO_REUSE):
