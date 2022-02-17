@@ -4,6 +4,8 @@ ALE = 1
 BOX2D = 2
 MINATAR = 3
 MAPE = 4
+CLASSIC = 5
+
 
 # Observation type
 NONSPATIAL = 0
@@ -12,6 +14,7 @@ SPATIAL = 1
 # Time limit
 GRIDWORLD_TIMELIMIT = 100
 ALE_TIMELIMIT = 27000
+CLASSIC_TIMELIMIT = 1000
 BOX2D_TIMELIMIT = 1000
 MINATAR_TIMELIMIT = 1000
 MAPE_TIMELIMIT = 100
@@ -95,13 +98,17 @@ ENV_INFO = {
 
     'BOX2D-LunarLander': ('BOX2D00', BOX2D, NONSPATIAL, True, 'LunarLander-v2', False, 0, 0, BOX2D_TIMELIMIT),
 
+    'GRIDWORLD-ReachTheGoal-v0': ('GW00V0', GRIDWORLD, NONSPATIAL, True, 'ReachTheGoal', False, 0, 0, 50),
+    'GRIDWORLD-ReachTheGoal-v1': ('GW00V1', GRIDWORLD, NONSPATIAL, True, 'ReachTheGoal', False, 0, 0, 50),
+    'GRIDWORLD-ReachTheGoal-v2': ('GW00V2', GRIDWORLD, SPATIAL, True, 'ReachTheGoal', False, 0, 0, 50),
+
     'MAPE-Simple': ('MAPE000', MAPE, NONSPATIAL, True, 'simple', False, 0, 0, MAPE_TIMELIMIT),
 
-    'MinAtar-asterix': ('MA00R', MINATAR, SPATIAL, False, 'asterix', False, 0, 0, MINATAR_TIMELIMIT),
-    'MinAtar-breakout': ('MA10R', MINATAR, SPATIAL, False, 'breakout', False, 0, 0, MINATAR_TIMELIMIT),
-    'MinAtar-freeway': ('MA20R', MINATAR, SPATIAL, False, 'freeway', False, 0, 0, MINATAR_TIMELIMIT),
-    'MinAtar-seaquest': ('MA30R', MINATAR, SPATIAL, False, 'seaquest', False, 0, 0, MINATAR_TIMELIMIT),
-    'MinAtar-spaceinvaders': ('MA40R', MINATAR, SPATIAL, False, 'space_invaders', False, 0, 0, MINATAR_TIMELIMIT),
+    'MinAtar-Asterix': ('MA00R', MINATAR, SPATIAL, False, 'asterix', False, 0, 0, MINATAR_TIMELIMIT),
+    'MinAtar-Breakout': ('MA10R', MINATAR, SPATIAL, False, 'breakout', False, 0, 0, MINATAR_TIMELIMIT),
+    'MinAtar-Freeway': ('MA20R', MINATAR, SPATIAL, False, 'freeway', False, 0, 0, MINATAR_TIMELIMIT),
+    'MinAtar-Seaquest': ('MA30R', MINATAR, SPATIAL, False, 'seaquest', False, 0, 0, MINATAR_TIMELIMIT),
+    'MinAtar-SpaceInvaders': ('MA40R', MINATAR, SPATIAL, False, 'space_invaders', False, 0, 0, MINATAR_TIMELIMIT),
 }
 
 
