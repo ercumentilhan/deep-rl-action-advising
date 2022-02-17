@@ -280,6 +280,21 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
+    def get_td_error_single(self, obs):
+        if self.config['env_type'] == ALE:
+            obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
+
+        feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)],
+                     self.tf_vars['dropout_rate']: 0.0}
+
+        return self.session.run(self.tf_vars['td_error'], feed_dict=feed_dict)
+
+        #feed_dict, is_batch, _ = self.arrange_feed_dict(minibatch)
+        #td_error_batch = self.session.run(self.tf_vars['td_error'], feed_dict=feed_dict)
+        #return td_error_batch if is_batch else td_error_batch[0]
+
+    # ==================================================================================================================
+
     def get_loss(self, minibatch):
         feed_dict, is_batch, _ = self.arrange_feed_dict(minibatch)
         loss_batch = self.session.run(self.tf_vars['loss'], feed_dict=feed_dict)
