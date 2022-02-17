@@ -48,6 +48,20 @@ def generate_envs(env_key, env_training_seed, env_evaluation_seed):
         eval_env = gym.make(env_name)
         eval_env.seed(env_evaluation_seed)
 
+    elif env_type == GRIDWORLD:
+
+        obs_form = None
+        if 'v0' in env_key:
+            obs_form = 0
+        elif 'v1' in env_key:
+            obs_form = 1
+        elif 'v2' in env_key:
+            obs_form = 2
+
+        import gridworld.environment
+        env = gridworld.environment.Environment(seed=env_training_seed, slipping_prob=0.2, obs_form=obs_form)
+        eval_env = gridworld.environment.Environment(seed=env_evaluation_seed, slipping_prob=0.2, obs_form=obs_form)
+
     elif env_type == MINATAR:
         # import minatar_original as minatar
         import minatar_extended as minatar
