@@ -724,12 +724,13 @@ class Executor:
                 obs_next = self.env.state()
 
             # ----------------------------------------------------------------------------------------------------------
+            # self.config['generate_extra_visualisations'] and \
 
-            if self.config['env_type'] == GRIDWORLD and self.config['generate_extra_visualisations'] and \
-                    self.stats.n_env_steps == -10:
-                    #self.stats.n_env_steps % 50000 == 0:
+            if self.config['env_type'] == GRIDWORLD and \
+                    self.stats.n_env_steps % 200 == 0:
 
-                if self.config['dqn_twin'] and self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init']:
+                # self.config['dqn_twin'] and
+                if self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init']:
                     height = self.env.height
 
                     for n in range(len(self.env.passage_positions[0][0])):
@@ -738,7 +739,7 @@ class Executor:
 
                         y_inv = (height - 1) - y
                         obs_sample = self.env.generate_obs(0, (y, x))
-                        obs_uc = self.dqn_twin.get_uncertainty(obs_sample)[0] * 100.0
+                        obs_uc = self.get_student_uncertainty(obs_sample)*100.0
 
                         self.visualisation_values[0][y_inv][x] = obs_uc
 
@@ -1396,7 +1397,7 @@ def evaluate_behavioural_cloner(bc_model):
 
 # ======================================================================================================================
 
-def singlematrix(dims, middle_val, ax=None, triplotkw={}, tripcolorkw={}):
+def singlematrix(dims, middle_val, ax=None, triplotkw={}, tripcolorkw={}, vmin=None, vmax=None):
     if not ax:
         ax = plt.gca()
     n = middle_val.shape[0]
@@ -1413,7 +1414,10 @@ def singlematrix(dims, middle_val, ax=None, triplotkw={}, tripcolorkw={}):
 
     C = np.c_[middle_val.flatten(), middle_val.flatten(), middle_val.flatten(), middle_val.flatten()].flatten()
 
-    tripcolor = ax.tripcolor(A[:, 0], A[:, 1], Tr, facecolors=C, **tripcolorkw)
+    if vmin is None:
+        tripcolor = ax.tripcolor(A[:, 0], A[:, 1], Tr, facecolors=C, **tripcolorkw)
+    else:
+        tripcolor = ax.tripcolor(A[:, 0], A[:, 1], Tr, facecolors=C, vmin=vmin, vmax=vmax, **tripcolorkw)
 
     height = dims[0]
     width = dims[1]
@@ -1477,12 +1481,17 @@ def generate_grid_visualisation(env, config, save_path, step_number, values):
 
     for v in range(4):
         if v == 0:
-            cmap_str = 'coolwarm'
+            cmap_str = 'RdPu' # 'coolwarm'
         else:
             cmap_str = 'RdYlGn'
 
+        if v == 0:
+            vmin, vmax = 0.01, 0.75
+        else:
+            vmin, vmax = None, None
+
         singlematrix((height, width), values[v], ax=ax[ax_idx[v][0]][ax_idx[v][1]],
-                     triplotkw={"color": "k", "lw": 1}, tripcolorkw={'cmap': cmap_str})
+                     triplotkw={"color": "k", "lw": 1}, tripcolorkw={'cmap': cmap_str}, vmin=vmin, vmax=vmax)
 
         ax[ax_idx[v][0]][ax_idx[v][1]].margins(0)
         ax[ax_idx[v][0]][ax_idx[v][1]].set_aspect("equal")
