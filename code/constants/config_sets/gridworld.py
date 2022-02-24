@@ -247,6 +247,9 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
         CONFIG_SETS[id][0]['advice-collection-method'] = 'random'
 
+        CONFIG_SETS[id][1]['dqn-twin'] = True
+        CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
+
 # ----------------------------------------------------------------------------------------------------------------------
 # EA: Early Advising with Cheating (Mistake Correction)
 
