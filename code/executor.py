@@ -222,9 +222,6 @@ class Executor:
 
         self.summary_writer = tf.compat.v1.summary.FileWriter(self.save_summary_path, self.session.graph)
 
-        self.stats = Statistics(self.summary_writer, self.session)
-        self.teacher_stats = Statistics(self.summary_writer, self.session)
-
         # --------------------------------------------------------------------------------------------------------------
 
         self.env_info = {}
@@ -262,7 +259,14 @@ class Executor:
         print('Observation shape:', self.config['env_obs_dims'])
         print('# of actions:', self.config['env_n_actions'])
 
-        self.config['rm_extra_content'] = ['source', 'expert_action', 'preserve']
+        self.config['rm_extra_content'] = ['source', 'state_id', 'state_id_next', 'expert_action', 'preserve']
+
+        # --------------------------------------------------------------------------------------------------------------
+
+        n_states = self.env.n_states if self.config['env_type'] == GRIDWORLD else 0
+
+        self.stats = Statistics(self.summary_writer, self.session, n_states)
+        self.teacher_stats = Statistics(self.summary_writer, self.session, n_states)
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -413,6 +417,8 @@ class Executor:
         print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score, eval_score_real))
 
         obs, render = self.reset_env()
+        state_id = self.env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
+        state_id_next = None
 
         if self.config['save_obs_images']:
             self.save_obs_image(obs, self.stats.n_env_steps)
@@ -723,6 +729,8 @@ class Executor:
                 reward_real = reward
                 obs_next = self.env.state()
 
+            state_id_next = self.env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
+
             # ----------------------------------------------------------------------------------------------------------
             # self.config['generate_extra_visualisations'] and \
 
@@ -754,6 +762,8 @@ class Executor:
                 'obs_next': obs_next,
                 'done': done,
                 'source': action_source,
+                'state_id': state_id,
+                'state_id_next': state_id_next,
                 'expert_action': teacher_action,
                 'preserve': advice_collection_occurred if self.config['preserve_collected_advice'] else False
             }
@@ -789,15 +799,38 @@ class Executor:
             # Feedback
             self.student_agent.feedback_observe(transition)
 
+            # Update collection statistics (for Gridworld)
+            if self.config['env_type'] == GRIDWORLD:
+                if action_source == 0:
+                    self.stats.n_s1_transition_collected[state_id] += 1
+                    self.stats.n_s1_transition_collected_total += 1
+                elif action_source == 1:
+                    self.stats.n_s2_transition_collected[state_id] += 1
+                    self.stats.n_s2_transition_collected_total += 1
+                elif action_source == 2:
+                    self.stats.n_s3_transition_collected[state_id] += 1
+                    self.stats.n_s3_transition_collected_total += 1
+
             # ----------------------------------------------------------------------------------------------------------
 
             td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
-            feed_dict, is_batch = self.student_agent.feedback_learn()
+            feed_dict, is_batch = self.student_agent.feedback_learn(self.stats)
 
             # Train the twin DQN if the original DQN has performed a learning step
             loss_twin = 0.0
             if self.config['dqn_twin'] and feed_dict is not None:
                 loss_twin = self.dqn_twin.train_model_with_feed_dict(feed_dict, is_batch)
+
+            # Measure uncertainty values and reflect changes in the TensorFlow summary (for Gridworld)
+            if self.config['env_type'] == GRIDWORLD and \
+                    self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init']:
+                if self.stats.n_env_steps % 1 == 0:  # Period
+                    uncertainty_values = []
+                    for i in range(self.env.n_states):
+                        sample_obs = self.env.generate_obs_from_state(state_id)
+                        uncertainty_values.append(self.get_student_uncertainty(sample_obs))
+
+                    self.stats.update_summary_extra(uncertainty_values)
 
             # ----------------------------------------------------------------------------------------------------------
 
@@ -812,6 +845,7 @@ class Executor:
             self.stats.loss_twin += loss_twin
 
             obs = obs_next
+            state_id = state_id_next
             done = done or self.episode_duration >= self.env_info['max_timesteps']
 
             if done:
@@ -858,6 +892,8 @@ class Executor:
                             str(self.stats.n_episodes - 1), str(self.stats.n_env_steps - self.episode_duration)))
 
                 obs, render = self.reset_env()
+                state_id = self.env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
+                state_id_next = None
 
             # Per N steps summary update
             if self.stats.n_env_steps % self.stats.n_steps_per_update == 0:
