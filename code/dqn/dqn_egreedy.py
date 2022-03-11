@@ -161,7 +161,7 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
-    def feedback_learn(self, force_learn=False):
+    def feedback_learn(self, stats, force_learn=False):
 
         loss = 0.0
         ql_loss = 0.0
@@ -188,7 +188,7 @@ class EpsilonGreedyDQN(DQN):
             if force_learn or self.post_init_steps % self.config['dqn_train_period'] == 0:
 
                 td_error_batch, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
-                feed_dict, is_batch = self.train_model()
+                feed_dict, is_batch = self.train_model(stats)
 
                 if not force_learn:
                     self.stats.n_learning_steps_taken_in_period += 1
@@ -205,7 +205,7 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
-    def train_model(self):
+    def train_model(self, stats):
         self.training_steps += 1
         self.training_steps_since_target_update += 1
 
@@ -231,13 +231,30 @@ class EpsilonGreedyDQN(DQN):
 
         if self.config['dqn_rm_type'] == 'uniform':
             minibatch['source'] = minibatch_[-1]['source']
+            minibatch['state_id'] = minibatch_[-1]['state_id']
+            minibatch['state_id_next'] = minibatch_[-1]['state_id_next']
             minibatch['preserve'] = minibatch_[-1]['preserve']
         elif self.config['dqn_rm_type'] == 'per':
             minibatch['source'] = minibatch_[-3]['source']
+            minibatch['state_id'] = minibatch_[-3]['state_id']
+            minibatch['state_id_next'] = minibatch_[-3]['state_id_next']
             minibatch['preserve'] = minibatch_[-3]['preserve']
             minibatch['weights'] = minibatch_[-2]
             minibatch['idxes'] = minibatch_[-1]
 
+        # Update utilisation statistics
+        if self.config['env_type'] == GRIDWORLD:
+            for i, state_id in enumerate(minibatch['state_id']):
+                source = minibatch['source'][i]
+                if source == 0:
+                    stats.n_s1_transition_utilised[state_id] += 1
+                    stats.n_s1_transition_utilised_total += 1
+                elif source == 1:
+                    stats.n_s2_transition_utilised[state_id] += 1
+                    stats.n_s2_transition_utilised_total += 1
+                elif source == 2:
+                    stats.n_s3_transition_utilised[state_id] += 1
+                    stats.n_s3_transition_utilised_total += 1
 
         td_error, loss, ql_loss, ql_loss_weighted, lm_loss, lm_loss_weighted, l2_loss, l2_loss_weighted, \
         feed_dict, is_batch = self.get_grads_update(minibatch)
