@@ -2,12 +2,14 @@ import tensorflow as tf
 
 
 class Statistics(object):
-    def __init__(self, summary_writer, session):
+    def __init__(self, summary_writer, session, n_states=0):
 
         self.n_steps_per_update = 100
 
         self.summary_writer = summary_writer
         self.session = session
+
+        self.n_states = n_states
 
         self.n_evaluations = 0
         self.n_evaluations_b = 0
@@ -225,11 +227,76 @@ class Statistics(object):
         self.evaluation_b_advices_reused_correct_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
 
         # --------------------------------------------------------------------------------------------------------------
+        # Extra Statistics (only valid for Gridworld currently)
+        # s1: self, s2: teacher, s3: reuse
+
+        self.n_s1_transition_collected = [0 for _ in range(self.n_states)]
+        self.n_s1_transition_collected_var = [tf.compat.v1.Variable(0.0) for _ in range(self.n_states)]
+        self.n_s1_transition_collected_ph = [tf.compat.v1.placeholder(tf.compat.v1.float32) for _ in range(self.n_states)]
+
+        self.n_s2_transition_collected = [0 for _ in range(self.n_states)]
+        self.n_s2_transition_collected_var = [tf.compat.v1.Variable(0.0) for _ in range(self.n_states)]
+        self.n_s2_transition_collected_ph = [tf.compat.v1.placeholder(tf.compat.v1.float32) for _ in range(self.n_states)]
+
+        self.n_s3_transition_collected = [0 for _ in range(self.n_states)]
+        self.n_s3_transition_collected_var = [tf.compat.v1.Variable(0.0) for _ in range(self.n_states)]
+        self.n_s3_transition_collected_ph = [tf.compat.v1.placeholder(tf.compat.v1.float32) for _ in range(self.n_states)]
+
+        #
+
+        self.n_s1_transition_utilised = [0 for _ in range(self.n_states)]
+        self.n_s1_transition_utilised_var = [tf.compat.v1.Variable(0.0) for _ in range(self.n_states)]
+        self.n_s1_transition_utilised_ph = [tf.compat.v1.placeholder(tf.compat.v1.float32) for _ in range(self.n_states)]
+
+        self.n_s2_transition_utilised = [0 for _ in range(self.n_states)]
+        self.n_s2_transition_utilised_var = [tf.compat.v1.Variable(0.0) for _ in range(self.n_states)]
+        self.n_s2_transition_utilised_ph = [tf.compat.v1.placeholder(tf.compat.v1.float32) for _ in range(self.n_states)]
+
+        self.n_s3_transition_utilised = [0 for _ in range(self.n_states)]
+        self.n_s3_transition_utilised_var = [tf.compat.v1.Variable(0.0) for _ in range(self.n_states)]
+        self.n_s3_transition_utilised_ph = [tf.compat.v1.placeholder(tf.compat.v1.float32) for _ in range(self.n_states)]
+
+        #
+
+        self.n_s1_transition_collected_total = 0
+        self.n_s1_transition_collected_total_var = tf.compat.v1.Variable(0.0)
+        self.n_s1_transition_collected_total_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.n_s2_transition_collected_total = 0
+        self.n_s2_transition_collected_total_var = tf.compat.v1.Variable(0.0)
+        self.n_s2_transition_collected_total_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.n_s3_transition_collected_total = 0
+        self.n_s3_transition_collected_total_var = tf.compat.v1.Variable(0.0)
+        self.n_s3_transition_collected_total_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        #
+
+        self.n_s1_transition_utilised_total = 0
+        self.n_s1_transition_utilised_total_var = tf.compat.v1.Variable(0.0)
+        self.n_s1_transition_utilised_total_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.n_s2_transition_utilised_total = 0
+        self.n_s2_transition_utilised_total_var = tf.compat.v1.Variable(0.0)
+        self.n_s2_transition_utilised_total_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        self.n_s3_transition_utilised_total = 0
+        self.n_s3_transition_utilised_total_var = tf.compat.v1.Variable(0.0)
+        self.n_s3_transition_utilised_total_ph = tf.compat.v1.placeholder(tf.compat.v1.float32)
+
+        # ----- #
+
+        self.state_uncertainty_var = [tf.compat.v1.Variable(0.0) for _ in range(self.n_states)]
+        self.state_uncertainty_ph = [tf.compat.v1.placeholder(tf.compat.v1.float32) for _ in range(self.n_states)]
+
+        # --------------------------------------------------------------------------------------------------------------
 
         self.summary_op_steps = self.setup_summary_steps()
         self.summary_op_episode = self.setup_summary_episode()
         self.summary_op_evaluation = self.setup_summary_evaluation()
         self.summary_op_evaluation_b = self.setup_summary_evaluation_b()
+
+        self.summary_op_extra = self.setup_summary_extra()
 
         # --------------------------------------------------------------------------------------------------------------
 
@@ -302,6 +369,34 @@ class Statistics(object):
             self.evaluation_b_advices_reused_var.assign(self.evaluation_b_advices_reused_ph),
             self.evaluation_b_advices_reused_correct_var.assign(self.evaluation_b_advices_reused_correct_ph),
         ]
+
+        self.assignments_extra = [
+            self.n_s1_transition_collected_total_var.assign(self.n_s1_transition_collected_total_ph),
+            self.n_s2_transition_collected_total_var.assign(self.n_s2_transition_collected_total_ph),
+            self.n_s3_transition_collected_total_var.assign(self.n_s3_transition_collected_total_ph),
+            self.n_s1_transition_utilised_total_var.assign(self.n_s1_transition_utilised_total_ph),
+            self.n_s2_transition_utilised_total_var.assign(self.n_s2_transition_utilised_total_ph),
+            self.n_s3_transition_utilised_total_var.assign(self.n_s3_transition_utilised_total_ph),
+
+        ]
+
+        for i in range(self.n_states):
+            self.assignments_extra.append(
+                self.n_s1_transition_collected_var[i].assign(self.n_s1_transition_collected_ph[i]))
+            self.assignments_extra.append(
+                self.n_s2_transition_collected_var[i].assign(self.n_s2_transition_collected_ph[i]))
+            self.assignments_extra.append(
+                self.n_s3_transition_collected_var[i].assign(self.n_s3_transition_collected_ph[i]))
+
+            self.assignments_extra.append(
+                self.n_s1_transition_utilised_var[i].assign(self.n_s1_transition_utilised_ph[i]))
+            self.assignments_extra.append(
+                self.n_s2_transition_utilised_var[i].assign(self.n_s2_transition_utilised_ph[i]))
+            self.assignments_extra.append(
+                self.n_s3_transition_utilised_var[i].assign(self.n_s3_transition_utilised_ph[i]))
+
+            self.assignments_extra.append(
+                self.state_uncertainty_var[i].assign(self.state_uncertainty_ph[i]))
 
     # ==================================================================================================================
 
@@ -427,6 +522,45 @@ class Statistics(object):
 
     # ==================================================================================================================
 
+    def setup_summary_extra(self):
+        to_be_merged = []
+
+        for i in range(self.n_states):
+            to_be_merged.append(tf.compat.v1.summary.scalar('Extras State ' + str(i) + '/Uncertainty',
+                                                           self.state_uncertainty_var[i]))
+
+            to_be_merged.append(tf.compat.v1.summary.scalar('Extras State ' + str(i) + '/Utilised S1',
+                                                           self.n_s1_transition_utilised_var[i]))
+            to_be_merged.append(tf.compat.v1.summary.scalar('Extras State ' + str(i) + '/Utilised S2',
+                                                           self.n_s2_transition_utilised_var[i]))
+            to_be_merged.append(tf.compat.v1.summary.scalar('Extras State ' + str(i) + '/Utilised S3',
+                                                           self.n_s3_transition_utilised_var[i]))
+
+            to_be_merged.append(tf.compat.v1.summary.scalar('Extras State ' + str(i) + '/Collected S1',
+                                                           self.n_s1_transition_collected_var[i]))
+            to_be_merged.append(tf.compat.v1.summary.scalar('Extras State ' + str(i) + '/Collected S2',
+                                                           self.n_s2_transition_collected_var[i]))
+            to_be_merged.append(tf.compat.v1.summary.scalar('Extras State ' + str(i) + '/Collected S3',
+                                                           self.n_s3_transition_collected_var[i]))
+
+        to_be_merged.append(tf.compat.v1.summary.scalar('Extras Total/Utilised S1 ',
+                                                        self.n_s1_transition_utilised_total_var))
+        to_be_merged.append(tf.compat.v1.summary.scalar('Extras Total/Utilised S2',
+                                                        self.n_s2_transition_utilised_total_var))
+        to_be_merged.append(tf.compat.v1.summary.scalar('Extras Total/Utilised S3',
+                                                        self.n_s3_transition_utilised_total_var))
+
+        to_be_merged.append(tf.compat.v1.summary.scalar('Extras Total/Collected S1',
+                                                        self.n_s1_transition_collected_total_var))
+        to_be_merged.append(tf.compat.v1.summary.scalar('Extras Total/Collected S2',
+                                                        self.n_s2_transition_collected_total_var))
+        to_be_merged.append(tf.compat.v1.summary.scalar('Extras Total/Collected S3',
+                                                        self.n_s3_transition_collected_total_var))
+
+        return tf.compat.v1.summary.merge(to_be_merged)
+
+    # ==================================================================================================================
+
     def update_summary_steps(self, steps_reward, steps_reward_auc, steps_reward_real, steps_reward_real_auc):
 
         if self.n_learning_steps_taken_in_period == 0:
@@ -549,4 +683,36 @@ class Statistics(object):
 
         self.session.run(requested_ops, feed_dict=feed_dict)
         summary = self.session.run(self.summary_op_evaluation_b)
+        self.summary_writer.add_summary(summary, self.n_env_steps)
+
+    # ==================================================================================================================
+
+    def update_summary_extra(self, uncertainty_values):
+        requested_ops = [assignment for assignment in self.assignments_extra]
+
+        feed_dict = {}
+
+        for i in range(self.n_states):
+            feed_dict[self.n_s1_transition_utilised_ph[i]] = self.n_s1_transition_utilised[i]
+            feed_dict[self.n_s2_transition_utilised_ph[i]] = self.n_s2_transition_utilised[i]
+            feed_dict[self.n_s3_transition_utilised_ph[i]] = self.n_s3_transition_utilised[i]
+
+            feed_dict[self.n_s1_transition_collected_ph[i]] = self.n_s1_transition_collected[i]
+            feed_dict[self.n_s2_transition_collected_ph[i]] = self.n_s2_transition_collected[i]
+            feed_dict[self.n_s3_transition_collected_ph[i]] = self.n_s3_transition_collected[i]
+
+            feed_dict[self.state_uncertainty_ph[i]] = uncertainty_values[i]
+
+        feed_dict[self.n_s1_transition_utilised_total_ph] = self.n_s1_transition_utilised_total
+        feed_dict[self.n_s2_transition_utilised_total_ph] = self.n_s2_transition_utilised_total
+        feed_dict[self.n_s3_transition_utilised_total_ph] = self.n_s3_transition_utilised_total
+
+        feed_dict[self.n_s1_transition_collected_total_ph] = self.n_s1_transition_collected_total
+        feed_dict[self.n_s2_transition_collected_total_ph] = self.n_s2_transition_collected_total
+        feed_dict[self.n_s3_transition_collected_total_ph] = self.n_s3_transition_collected_total
+
+        #print(feed_dict)
+
+        self.session.run(requested_ops, feed_dict=feed_dict)
+        summary = self.session.run(self.summary_op_extra)
         self.summary_writer.add_summary(summary, self.n_env_steps)
