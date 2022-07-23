@@ -114,6 +114,9 @@ class Executor:
 
         self.visualisation_values = []
 
+        # Advice lookup table for AIR-Simple
+        self.advice_lookup_table = {}
+
     # ==================================================================================================================
 
     def render(self, env):
@@ -312,6 +315,9 @@ class Executor:
 
         self.config['student_id'] = self.student_agent.id
 
+        self.student_agent.discrete_bcq_filtering = self.config['use_bcq_loss']
+        self.student_agent.advice_lookup_table = self.advice_lookup_table
+
         print('Student ID: {}'.format(self.student_agent.id))
 
         # --------------------------------------------------------------------------------------------------------------
@@ -420,6 +426,8 @@ class Executor:
         state_id = self.env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
         state_id_next = None
 
+        print('state_id', state_id)
+
         if self.config['save_obs_images']:
             self.save_obs_image(obs, self.stats.n_env_steps)
 
@@ -490,6 +498,10 @@ class Executor:
                     if random.random() < 0.5:
                         advice_collection_occurred = True
 
+                elif self.config['advice_collection_method'] == 'tabular_lookup':
+                    if state_id not in self.advice_lookup_table:
+                        advice_collection_occurred = True
+
                 # Based on the "uncertainty" estimated by twin network
                 elif self.config['advice_collection_method'] == 'student_model_uc' or \
                         self.config['advice_collection_method'] == 'dual_uc':
@@ -553,6 +565,7 @@ class Executor:
                     teacher_action = self.env.optimal_action()
                 else:
                     teacher_action = self.teacher_agent.get_greedy_action(obs)
+
                 action = teacher_action
                 action_source = 1
 
@@ -576,9 +589,13 @@ class Executor:
             #     self.student_agent_rnd.train_model(obs, loss_id=0, is_batch=False, normalize=True)
 
             # ----------------------------------------------------------------------------------------------------------
-
             # Imitation
-            if self.config['advice_imitation_method'] == 'periodic':
+            if self.config['advice_imitation_method'] == 'tabular_lookup':
+                if advice_collection_occurred:
+                    self.advice_lookup_table[state_id] = teacher_action
+                    self.initial_imitation_is_performed = True
+
+            elif self.config['advice_imitation_method'] == 'periodic':
 
                 if (self.steps_since_imitation >= self.config['advice_imitation_period_steps'] and
                     self.samples_since_imitation >= (self.config['advice_imitation_period_samples'] / 2)) or \
@@ -641,22 +658,29 @@ class Executor:
                         self.stats.advice_reuse_model_is_correct_cum += 1
 
             if not advice_collection_occurred and self.config['advice_collection_method'] != 'dual_uc':
-                if self.config['advice_reuse_method'] != 'none' and \
-                        self.initial_imitation_is_performed:
+                if self.config['advice_reuse_method'] != 'none' and self.initial_imitation_is_performed:
 
                     if self.config['advice_reuse_method'] == 'extended' or \
                             (self.config['advice_reuse_method'] == 'restricted' and action_is_explorative):
 
                         if self.reuse_enabled:
+                            if self.config['advice_imitation_method'] == 'tabular_lookup':
+                                if state_id in self.advice_lookup_table:
+                                    reuse_advice = True
+
                             bc_uncertainty = self.bc_model.get_uncertainty(obs)
                             if bc_uncertainty < self.config['teacher_model_uc_th']:
                                 reuse_advice = True
 
             if reuse_advice:
-                if reuse_model_action is None:
-                    reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
+                if self.config['advice_imitation_method'] == 'tabular_lookup':
+                    action = self.advice_lookup_table[state_id]
+                else:
+                    if reuse_model_action is None:
+                        reuse_model_action = np.argmax(self.bc_model.get_action_probs(obs))
 
-                action = reuse_model_action
+                    action = reuse_model_action
+
                 action_source = 2
 
                 self.stats.advices_reused += 1
@@ -678,6 +702,16 @@ class Executor:
                     self.stats.advices_reused_ep_correct_cum += 1
 
             # ----------------------------------------------------------------------------------------------------------
+
+            if action is None:
+                if self.config['utilise_imitated_model'] and self.initial_imitation_is_performed:
+                    if self.config['advice_imitation_method'] == 'tabular_lookup':
+                        if state_id in self.advice_lookup_table:
+                            action = self.advice_lookup_table[state_id]
+                    else:
+                        bc_uncertainty = self.bc_model.get_uncertainty(obs)
+                        if bc_uncertainty < self.config['teacher_model_uc_th']:
+                            action = np.argmax(self.bc_model.get_action_probs(obs))
 
             if action is None:
                 action = self_action
@@ -733,9 +767,8 @@ class Executor:
 
             # ----------------------------------------------------------------------------------------------------------
             # self.config['generate_extra_visualisations'] and \
-
             if self.config['env_type'] == GRIDWORLD and \
-                    self.stats.n_env_steps % 200 == 0:
+                    self.stats.n_env_steps % 200 == -1:
 
                 # self.config['dqn_twin'] and
                 if self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init']:
@@ -824,14 +857,13 @@ class Executor:
             # Measure uncertainty values and reflect changes in the TensorFlow summary (for Gridworld)
             if self.config['env_type'] == GRIDWORLD and \
                     self.student_agent.replay_memory.__len__() >= self.config['dqn_rm_init']:
-                if self.stats.n_env_steps % 1 == 0:  # Period
+                if self.stats.n_env_steps % 1 == 500:  # Period
                     uncertainty_values = []
                     for i in range(self.env.n_states):
                         sample_obs = self.env.generate_obs_from_state(state_id)
                         uncertainty_values.append(self.get_student_uncertainty(sample_obs))
 
                     self.stats.update_summary_extra(uncertainty_values)
-
             # ----------------------------------------------------------------------------------------------------------
 
             if self.config['advice_reuse_probability_decay'] and \
@@ -921,7 +953,7 @@ class Executor:
                 self.steps_reward_real = 0.0
 
             if self.stats.n_env_steps % self.config['evaluation_period'] == 0:
-                eval_score_a, eval_score_real_a = self.evaluate()
+                eval_score_a, eval_score_real_a = self.evaluate(self.config['utilise_imitated_model'])
                 print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_a, eval_score_real_a))
 
                 # Evaluate (B) with the teacher model enabled (if appropriate)
@@ -1111,6 +1143,8 @@ class Executor:
                 self.eval_env.reset()
                 eval_obs = self.eval_env.state().astype(dtype=np.float32)
 
+            eval_state_id = self.eval_env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
+
             eval_episode_reward_real = 0.0
             eval_episode_reward = 0.0
             eval_episode_duration = 0
@@ -1141,7 +1175,7 @@ class Executor:
                     eval_action = eval_teacher_action
                 else:
                     if utilise_advice_reuse:
-                        eval_action = self.utilise_advice_reuse(eval_obs)
+                        eval_action = self.utilise_advice_reuse(eval_obs, eval_state_id)
 
                         if eval_action is not None:
                             eval_advices_reused += 1
@@ -1297,7 +1331,7 @@ class Executor:
 
     # ==================================================================================================================
 
-    def utilise_advice_reuse(self, obs):
+    def utilise_advice_reuse(self, obs, state_id):
         reuse_advice = False
         if self.config['advice_collection_method'] == 'dual_uc':
             if self.student_agent.replay_memory.__len__() > self.config['dqn_rm_init']:
@@ -1329,12 +1363,20 @@ class Executor:
         else:
             if self.config['advice_reuse_method'] != 'none' and \
                     self.initial_imitation_is_performed:
-                bc_uncertainty = self.bc_model.get_uncertainty(obs)
-                if bc_uncertainty < self.config['teacher_model_uc_th']:
-                    reuse_advice = True
+
+                if self.config['advice_imitation_method'] == 'tabular_lookup':
+                    if state_id in self.advice_lookup_table:
+                        reuse_advice = True
+                else:
+                    bc_uncertainty = self.bc_model.get_uncertainty(obs)
+                    if bc_uncertainty < self.config['teacher_model_uc_th']:
+                        reuse_advice = True
 
         if reuse_advice:
-            return np.argmax(self.bc_model.get_action_probs(obs))
+            if self.config['advice_imitation_method'] == 'tabular_lookup':
+                return self.advice_lookup_table[state_id]
+            else:
+                return np.argmax(self.bc_model.get_action_probs(obs))
 
         return None
 

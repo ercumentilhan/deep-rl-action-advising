@@ -149,6 +149,10 @@ if __name__ == '__main__':
     parser.add_argument('--advice-reuse-stopping-eval-window-size', type=int, default=5)
     parser.add_argument('--advice-reuse-stopping-eval-proximity', type=float, default=0.9)
 
+    # Batch Constrained DQN related settings
+    parser.add_argument('--use-bcq-loss', action='store_true', default=False)
+    parser.add_argument('--utilise-imitated-model', action='store_true', default=False)
+
     # ------------------------------------------------------------------------------------------------------------------
 
     arg_vars = vars(parser.parse_args())

@@ -44,6 +44,9 @@ class EpsilonGreedyDQN(DQN):
         # Load any provided demonstrations datasets into the replay memory
         self.load_datasets()
 
+        self.discrete_bcq_filtering = False
+        self.advice_lookup_table = None
+
     # ==================================================================================================================
 
     def build_network(self, name, input, is_dueling, n_hidden_layers, dense_hidden_size_1, dense_hidden_size_2,
@@ -355,7 +358,7 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
-    def get_td_target(self, reward_batch_in, obs_next_batch_in, done_batch_in):
+    def get_td_target(self, reward_batch_in, obs_next_batch_in, done_batch_in, state_id_batch_in):
 
         is_batch = isinstance(reward_batch_in, list) or isinstance(reward_batch_in, np.ndarray)
 
@@ -375,6 +378,11 @@ class EpsilonGreedyDQN(DQN):
             self.session.run([self.tf_vars['q_values'], self.tf_vars['q_values_tar']], feed_dict=feed_dict)
 
         action_next_batch = np.argmax(q_values_next_batch, axis=1)
+
+        if self.discrete_bcq_filtering:
+            for i, state_id in enumerate(state_id_batch_in):
+                if state_id in self.advice_lookup_table:
+                    action_next_batch[i] = self.advice_lookup_table[state_id]
 
         td_target_batch = []
         for j in range(len(reward_batch)):
@@ -400,7 +408,8 @@ class EpsilonGreedyDQN(DQN):
         reward_batch = super().fix_batch_form(minibatch['reward'], is_batch)
         obs_next_batch = super().fix_batch_form(obs_next_batch, is_batch)
         done_batch = super().fix_batch_form(minibatch['done'], is_batch)
-        td_target_batch = self.get_td_target(reward_batch, obs_next_batch, done_batch)
+        state_id_batch = super().fix_batch_form(minibatch['state_id'], is_batch)
+        td_target_batch = self.get_td_target(reward_batch, obs_next_batch, done_batch, state_id_batch)
 
         feed_dict = {self.tf_vars['obs']: obs_batch,
                      self.tf_vars['action']: action_batch,

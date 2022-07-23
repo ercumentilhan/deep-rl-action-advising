@@ -150,6 +150,12 @@ def generate_config():
     config[0]['advice-reuse-stopping-eval-window-size'] = 5
     config[0]['advice-reuse-stopping-eval-proximity'] = 0.9
 
+    # Batch Constrained DQN related settings
+    config[1]['use-bcq-loss'] = False
+    config[1]['utilise-imitated-model'] = False  # utilises imitated teacher model not only for reusing but also for
+    # actual behaviour and evaluation stages
+
+
     return config
 
 
@@ -262,6 +268,107 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
         CONFIG_SETS[id][0]['advice-collection-method'] = 'early'
         CONFIG_SETS[id][1]['mistake-correction-mode'] = True
+
+# ----------------------------------------------------------------------------------------------------------------------
+# AIR-Simple with constant reuse
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('380' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
+
+        CONFIG_SETS[id][1]['dqn-twin'] = True  # Enabled to keep record of encountered uncertainty values
+        CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
+
+# ----------------------------------------------------------------------------------------------------------------------
+# AIR-Simple with random reuse (as in the original AIR but with constant probability for simplicity)
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('381' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 0.5
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 0.5
+
+        CONFIG_SETS[id][1]['dqn-twin'] = True  # Enabled to keep record of encountered uncertainty values
+        CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
+# ----------------------------------------------------------------------------------------------------------------------
+# AIR-Simple with constant reuse +  BCQ-modified loss
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('382' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
+
+        CONFIG_SETS[id][1]['use-bcq-loss'] = True
+
+        CONFIG_SETS[id][1]['dqn-twin'] = True  # Enabled to keep record of encountered uncertainty values
+        CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
+
+# ----------------------------------------------------------------------------------------------------------------------
+# AIR-Simple with constant reuse +  BCQ-modified policy
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('383' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
+
+        CONFIG_SETS[id][1]['utilise-imitated-model'] = True
+
+        CONFIG_SETS[id][1]['dqn-twin'] = True  # Enabled to keep record of encountered uncertainty values
+        CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
+
+# ----------------------------------------------------------------------------------------------------------------------
+# AIR-Simple with constant reuse +  BCQ-modified loss and policy
+
+for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
+    for j, budget_option in enumerate(BUDGET_OPTIONS):
+        id = int('384' + str(i) + str(j))
+        CONFIG_SETS[id] = generate_config()
+        CONFIG_SETS[id][1]['load-teacher'] = True
+        CONFIG_SETS[id][0]['teacher-level'] = teacher_level_option
+        CONFIG_SETS[id][0]['advice-collection-budget'] = budget_option
+        CONFIG_SETS[id][0]['advice-collection-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-imitation-method'] = 'tabular_lookup'
+        CONFIG_SETS[id][0]['advice-reuse-method'] = 'extended'
+        CONFIG_SETS[id][0]['advice-reuse-probability'] = 1.0
+        CONFIG_SETS[id][0]['advice-reuse-probability-final'] = 1.0
+
+        CONFIG_SETS[id][1]['use-bcq-loss'] = True
+        CONFIG_SETS[id][1]['utilise-imitated-model'] = True
+
+        CONFIG_SETS[id][1]['dqn-twin'] = True  # Enabled to keep record of encountered uncertainty values
+        CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
 
 # ----------------------------------------------------------------------------------------------------------------------
 # AR: Advice Reuse
