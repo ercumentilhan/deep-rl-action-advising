@@ -953,12 +953,12 @@ class Executor:
                 self.steps_reward_real = 0.0
 
             if self.stats.n_env_steps % self.config['evaluation_period'] == 0:
-                eval_score_a, eval_score_real_a = self.evaluate(self.config['utilise_imitated_model'])
+                eval_score_a, eval_score_real_a = self.evaluate(self.config['utilise_imitated_model'], False)
                 print('Evaluation @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_a, eval_score_real_a))
 
                 # Evaluate (B) with the teacher model enabled (if appropriate)
                 if self.config['advice_imitation_method'] != 'none':
-                    eval_score_b, eval_score_real_b = self.evaluate(True)
+                    eval_score_b, eval_score_real_b = self.evaluate(True, True)
                     print('Evaluation (B) @ {} | {} & {}'.format(self.stats.n_env_steps, eval_score_b, eval_score_real_b))
 
                     if self.stats.n_evaluations_b >= self.config['advice_reuse_stopping_eval_start']:
@@ -1084,7 +1084,7 @@ class Executor:
 
     # ==================================================================================================================
 
-    def evaluate(self, utilise_advice_reuse=False):
+    def evaluate(self, utilise_advice_reuse=False, log_as_B=False):
         eval_render = self.stats.n_evaluations % self.config['evaluation_visualization_period'] == 0 and \
                       self.config['visualize_videos']
 
@@ -1261,7 +1261,7 @@ class Executor:
         eval_mean_reward = eval_total_reward / float(self.config['n_evaluation_trials'])
         eval_mean_reward_real = eval_total_reward_real / float(self.config['n_evaluation_trials'])
 
-        if not utilise_advice_reuse:
+        if not log_as_B:
             self.stats.n_evaluations += 1
 
             self.stats.evaluation_reward_auc += np.trapz([self.stats.evaluation_reward_last, eval_mean_reward])
