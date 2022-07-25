@@ -1223,6 +1223,8 @@ class Executor:
                 eval_episode_duration += 1
                 eval_obs = eval_obs_next
 
+                eval_state_id = self.eval_env.get_state_id() if self.config['env_type'] == GRIDWORLD else None
+
                 eval_done = eval_done or eval_episode_duration >= self.env_info['max_timesteps']
 
                 if eval_done:
