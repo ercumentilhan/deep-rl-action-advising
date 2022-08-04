@@ -38,16 +38,14 @@ TAGS = [
     'Advices_Taken',
     'Advices_Reused/All',
     'Advices_Reused_Correct/All',
-    'Teacher_Model_Eval_Steps/Correct',
-    'Teacher_Model_Eval_Cumulative/Correct'
-
-    # 'Advices_Reuse_Model_Correct/Cumulative',
-    # 'Advices_Reuse_Model_Correct/Steps',
+    'Advices_Reuse_Model_Correct/Cumulative',
+    'Advices_Reuse_Model_Correct/Steps',
 ]
 
 # Multi-plot settings
 # Directory that contain the sub-directories of games with the summary files
 RUNS_DIR_MULTI = 'E:\\S\\All\\'
+RUNS_DIR_MULTI = 'D:\\UoA\\After_Omen_BreakDown_2021\\Results\\Dec162021\\All_for_Plots'
 TAGS_MULTI = [
     'Evaluation/Reward_Real',
     'Advices_Taken',
@@ -97,13 +95,13 @@ def export_to_csv(input_dir, output_dir, requested_tag):
                 df = pd.DataFrame(np_values[index], index=steps)
                 df.to_csv(os.path.join(output_dir, tag + '.csv'), header=False)
 
-                # if tag == 'Advices_Reuse_Model_Correct-Cumulative':
-                #     df_values = df.iloc[:, 0].values
-                #     df_values[1:] -= df_values[:-1].copy()
-                #     df.iloc[:, 0] = df_values
-                #     t_resampled = np.linspace(600, 5000000, 2500)
-                #     df = df.reindex(df.index.union(t_resampled)).interpolate('values').loc[t_resampled]
-                #     df.to_csv(os.path.join(output_dir, 'Advices_Reuse_Model_Correct-Steps' + '.csv'), header=False)
+                if tag == 'Advices_Reuse_Model_Correct-Cumulative':
+                    df_values = df.iloc[:, 0].values
+                    df_values[1:] -= df_values[:-1].copy()
+                    df.iloc[:, 0] = df_values
+                    t_resampled = np.linspace(600, 5000000, 2500)
+                    df = df.reindex(df.index.union(t_resampled)).interpolate('values').loc[t_resampled]
+                    df.to_csv(os.path.join(output_dir, 'Advices_Reuse_Model_Correct-Steps' + '.csv'), header=False)
 
 
 # ======================================================================================================================
@@ -183,7 +181,7 @@ def generate_plots(summaries_dir, plots_dir, tag):
         plt.close(fig)
 
 # ======================================================================================================================
-
+#Old function - does not account for 10 seeds
 def generate_combined_plot(summaries_dir, plots_dir, tag):
     os.makedirs(plots_dir, exist_ok=True)
 
@@ -196,8 +194,6 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         span = 150
     elif tag == 'Advices_Reuse_Model_Correct/Steps':
         span = 200
-    elif tag == 'Teacher_Model_Eval_Steps/Correct':
-        span = 100
     else:
         span = 5
 
@@ -419,6 +415,7 @@ def generate_pda(summaries_dir, tags):
             plot_data_x = []
 
             for seed_dir in seed_dirs:
+                print(seed_dir)
                 if tag == 'Advices_Taken_Long':
                     data_x, data_y = read_data(os.path.join(seed_dir,
                                                             'Advices_Taken'.replace("/", "-") + '.csv'))
@@ -432,6 +429,7 @@ def generate_pda(summaries_dir, tags):
                     data_x, data_y = read_data(os.path.join(seed_dir, tag.replace("/", "-") + '.csv'))
 
                 plot_data_y.append(data_y)
+                #plot_data_y.append(np.array(data_y))
                 plot_data_x.append(data_x)
 
             plot_datas_y[key] = plot_data_y
@@ -448,6 +446,19 @@ def generate_pda(summaries_dir, tags):
                     span = 5
                 else:
                     span = 1
+
+            print(key, tag)
+            #print('plot_datas_x columns: ', plot_datas_x[key][0])
+            #print('plot_data_y rows: ', len(plot_data_y), 'and', 'plot_data_y columns:', len(plot_data_y[0]))
+            #print('plot_data_y columns: ', len(plot_data_y[0]), 'and', 'plot_data_x columns:', len(plot_datas_x[key][0]))
+            #print(plot_data_y[0])
+            #print(type(plot_data_y[0]))
+            #print(plot_data_y)
+
+            #print(np.array(plot_data_y,dtype=object).shape)
+            #print(np.vstack(plot_data_y))
+
+            #print(len(plot_data_y[0]), len(plot_data_y[1]), len(plot_data_y[2]))
 
             pda = pd.DataFrame(plot_data_y, columns=plot_datas_x[key][0])
             pda = pda.ewm(axis=1, span=span).mean()
@@ -503,7 +514,12 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
 
         # Compute AUC and Final Value
         if tag == 'Evaluation/Reward_Real':
-            n_seeds = 3
+
+            #Pending 3 seeds in Seaquest
+            # if name == 'Seaquest':
+            #     n_seeds = 7
+            # else:
+            n_seeds = 10 #3
 
             # Extract seed value sets
             values = pda_all[run_id]['value'].to_numpy()
@@ -512,17 +528,38 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
             seed_aucs = []
             seed_finals = []
 
+            seed_init = []
+            seed_inter = []
+            seed_later = []
+            seed_total = []
+
             for i_seed in range(n_seeds):
                 seed_values.append(values[i_seed::n_seeds])
                 seed_aucs.append(np.trapz(values[i_seed::n_seeds])/100)
                 seed_finals.append(np.mean(values[i_seed::n_seeds][-3:]))
+
+                l = len(values[i_seed::n_seeds])
+                seed_init.append(np.mean(values[i_seed::n_seeds][:int(l / 3)]))
+                seed_inter.append(np.mean(values[i_seed::n_seeds][int(l / 3):int(2/3 * l)]))
+                seed_later.append(np.mean(values[i_seed::n_seeds][int(2/3 * l):l]))
+                seed_total.append(np.mean(values[i_seed::n_seeds]))           
 
             # print('{}: {}'.format(labels[run_id], np.mean(seed_aucs)))
             # print('{}: {}'.format(labels[run_id], np.mean(seed_finals)))
 
             # print('tag1', run_id)
 
-            final_str = '${:.2f} \pm {:.2f}$'.format(round(np.mean(seed_finals), 2), round(np.std(seed_finals), 2))
+            #final_str = '${:.2f} \pm {:.2f}$'.format(round(np.mean(seed_finals), 2), round(np.std(seed_finals), 2))
+            #print("Total seeds in consideration: ", len(seed_finals))
+            #print(seed_finals)
+            #changed std to sem
+            final_str = '${:.2f} \pm {:.2f} {:.2f} \pm {:.2f} {:.2f} \pm {:.2f} {:.2f} \pm {:.2f} {:.2f} \pm {:.2f}$'.\
+            format(round(np.mean(seed_init), 2), round(stats.sem(seed_init), 2),
+                round(np.mean(seed_inter), 2), round(stats.sem(seed_inter),  2),
+                round(np.mean(seed_later), 2), round(stats.sem(seed_later),  2),
+                round(np.mean(seed_finals),2), round(stats.sem(seed_finals), 2),
+                round(np.mean(seed_total), 2), round(stats.sem(seed_total),  2))
+
             auc_str = '${:.2f} \pm {:.2f}$'.format(round(np.mean(seed_aucs), 2), round(np.std(seed_aucs), 2))
 
             dict_final[run_id] = final_str
@@ -533,7 +570,11 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
                 tag == 'Advices_Reused_Cumulative_Correct/All' or tag == 'Advices_Reused_Correct_Cumulative_Percentage'\
                 or tag == 'Advices_Reused/All' or tag == 'Advices_Reused/All':
 
-            n_seeds = 3
+            #Pending 3 seeds in Seaquest
+            # if name == 'Seaquest':
+            #     n_seeds = 7
+            # else:
+            n_seeds = 10 #3
 
             values = pda_all[run_id]['value'].to_numpy()
             seed_final_values = []
@@ -819,6 +860,8 @@ def plot_in_multiplot(name, tag, ax, run_idx, labels, pda_all, y_range, x_range,
     if hide_y_ticks:
         ax.set_yticklabels([])
 
+    plt.legend()
+
     plt.tight_layout()
 
 # ======================================================================================================================
@@ -920,6 +963,7 @@ def generate_ind_eval_plot(pda_of_tags_all, labels_of_tags_all, game_id, y_range
                       text=None, hide_x_ticks=False, hide_y_ticks=False)
 
     plt.tight_layout()
+    plt.legend()
 
     fig.savefig(RUNS_DIR_MULTI + '/plots_evaluation_' + title + '.png', bbox_inches='tight')
 
@@ -1067,6 +1111,8 @@ def generate_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all):
     axes[9].grid()
     axes[9].grid()
 
+    plt.legend()
+
     plt.tight_layout()
 
     fig.savefig(RUNS_DIR_MULTI + '/plots_advice' + '.png', bbox_inches='tight')
@@ -1098,7 +1144,7 @@ def generate_ind_small_split_budget_plot(pda_of_tags_all, labels_of_tags_all, ga
     pda_s = pda_of_tags_all[game_id][tag]
     labels = labels_of_tags_all[game_id][tag]
     plot_in_multiplot(title, tag, axes[0], None, labels, pda_s, y_ranges[0], [0, 5000000], False,
-                      x_label='Millions of environment steps', y_label='# of adv. reused', title='Enduro',
+                      x_label='Millions of environment steps', y_label='# of adv. reused', title=title,
                       text=None, hide_x_ticks=False, hide_y_ticks=False)
     axes[0].grid()
     axes[0].grid()
@@ -1138,6 +1184,7 @@ def generate_multi_plots():
 
         print(game)
         summaries_dir_multi = os.path.join(RUNS_DIR_MULTI, game)
+        print(summaries_dir_multi)
         # generate_csv_files(summaries_dir, TAGS)
         pda_of_tags, labels_of_tags = generate_pda(summaries_dir_multi, TAGS_MULTI)
         pda_of_tags_all.append(pda_of_tags)
@@ -1157,6 +1204,8 @@ def generate_multi_plots():
 #     summaries_dir = SUMM_DIR
 
 summaries_dir = 'E:\\S\\All\\Pong_Eval'
+summaries_dir = 'D:\\UoA\\After_Omen_BreakDown_2021\\Results\\Dec162021\\All_for_Plots'
+
 
 if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
     plots_dir = os.path.join(summaries_dir + '_Plots')
@@ -1169,4 +1218,4 @@ if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
     # generate_csv_files(summaries_dir, TAGS)
     #for tag in TAGS:
     #    generate_combined_plot(summaries_dir, plots_dir, tag)
-
+    
