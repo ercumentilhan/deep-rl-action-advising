@@ -25,12 +25,12 @@ SUMM_DIR = 'D:/UoA/After_Omen_BreakDown_2021/Results/Twin_DQN_3300_5100_6100/Sum
 # OR provide a direct summaries directory
 
 # Set the environment to plot results for
-ENV = 'Seaquest' # 'Seaquest'
+ENV = 'Gridworld' # 'Seaquest'
 
 # Set the incompetent (0) & competent (1) teachers' scores
 # Set None to disable
-TEACHER_SCORE_0 = 1418.0
-TEACHER_SCORE_1 = 8178.0
+TEACHER_SCORE_0 = None
+TEACHER_SCORE_1 = None
 
 TAGS = [
     'Evaluation/Reward_Real',
@@ -190,7 +190,7 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
     # Plot smoothing span
     if tag == 'Advices_Taken':
         span = 30
-    elif tag == 'Advices_Reused/All':
+    elif tag == 'Advices_Reused/All' or tag == 'Advices_Reused_Correct/All':
         span = 150
     elif tag == 'Advices_Reuse_Model_Correct/Steps':
         span = 200
@@ -306,7 +306,7 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
         x_lim, y_lim = [None, None], [None, None]
 
         if tag == 'Advices_Taken' or \
-                tag == 'Advices_Reused/All':
+                tag == 'Advices_Reused/All' or tag == 'Advices_Reused/All' or tag == 'Advices_Reused_Correct/All':
             y_lim = [-5, None]
             x_lim = [-10, None]
 
@@ -316,6 +316,7 @@ def generate_combined_plot(summaries_dir, plots_dir, tag):
                 x_lim = [-10, 250000]
                 modify_and_save_plot(ax, tag, x_lim, y_lim, tag.replace("/", "-") + '_Zoomed')
         else:
+            print(ENV)
             if ENV == 'Seaquest':
                 if tag == 'Evaluation/Reward_Real' or tag == 'Evaluation_B/Reward_Real':
                     y_lim = [-200, None]
@@ -334,6 +335,13 @@ def modify_and_save_plot(ax, tag, x_lim, y_lim, filename):
     legend_loc = 'upper left'
     if tag == 'Advices_Taken':
         legend_loc = 'upper right'
+
+    if ENV == 'Gridworld':
+        if tag == 'Evaluation/Reward_Real' or tag == 'Evaluation_B/Reward_Real':
+            legend_loc = 'upper left'
+        else:
+            legend_loc = 'lower left'
+
     ax.legend(ax_handles, ax_labels, loc=legend_loc, labelspacing=0.25)
 
     plt.tight_layout()
@@ -1203,8 +1211,8 @@ def generate_multi_plots():
 # else:
 #     summaries_dir = SUMM_DIR
 
-summaries_dir = 'E:\\S\\All\\Pong_Eval'
-summaries_dir = 'D:\\UoA\\After_Omen_BreakDown_2021\\Results\\Dec162021\\All_for_Plots'
+#summaries_dir = 'E:\\S\\All\\Pong_Eval'
+summaries_dir = 'E:\\Runs\\Summaries\\50'
 
 
 if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
@@ -1213,9 +1221,9 @@ if os.path.isdir(summaries_dir) and len(os.listdir(summaries_dir)) != 0:
     if os.path.exists(plots_dir):
         shutil.rmtree(plots_dir)
 
-    generate_multi_plots()
+    #generate_multi_plots()
 
-    # generate_csv_files(summaries_dir, TAGS)
-    #for tag in TAGS:
-    #    generate_combined_plot(summaries_dir, plots_dir, tag)
+    generate_csv_files(summaries_dir, TAGS)
+    for tag in TAGS:
+        generate_combined_plot(summaries_dir, plots_dir, tag)
     
