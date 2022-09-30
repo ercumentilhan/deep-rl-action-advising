@@ -117,6 +117,7 @@ class Executor:
         # Advice lookup table for AIR-Simple
         self.advice_lookup_table = {}
 
+
     # ==================================================================================================================
 
     def render(self, env):
@@ -318,6 +319,9 @@ class Executor:
         self.student_agent.discrete_bcq_filtering = self.config['use_bcq_loss']
         self.student_agent.advice_lookup_table = self.advice_lookup_table
 
+        self.student_agent.teacher_model_uc_th = self.config['teacher_model_uc_th']
+        self.student_agent.bc_model = self.bc_model
+
         print('Student ID: {}'.format(self.student_agent.id))
 
         # --------------------------------------------------------------------------------------------------------------
@@ -360,6 +364,7 @@ class Executor:
         if self.config['advice_imitation_method'] != 'none':
             print('Initialising behaviour cloning network...')
             self.bc_model = BehaviouralCloning('BHC', self.config, self.session, None)
+            self.student_agent.bc_model = self.bc_model
 
             if self.config['load_demonstrations_dataset']:
                 for demonstrations_dataset in demonstrations_datasets:
@@ -612,8 +617,10 @@ class Executor:
 
                         if self.config['autoset_teacher_model_uc_th']:
                             self.config['teacher_model_uc_th'] = uc_threshold
+                            self.student_agent.teacher_model_uc_th = uc_threshold
 
                         self.initial_imitation_is_performed = True
+                        self.student_agent.initial_imitation_is_performed = True
                         self.steps_since_imitation = 0
                         self.samples_since_imitation = 0
                     else:
@@ -630,6 +637,7 @@ class Executor:
                         if self.config['autoset_teacher_model_uc_th']:
                             print('setting uc threshold:', uc_threshold)
                             self.config['teacher_model_uc_th'] = uc_threshold
+                            self.student_agent.teacher_model_uc_th = uc_threshold
 
                         self.steps_since_imitation = 0
                         self.samples_since_imitation = 0

@@ -328,7 +328,7 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
 
 # ----------------------------------------------------------------------------------------------------------------------
-# AIR-Simple with constant reuse +  BCQ-modified policy
+# AIR-Simple with constant reuse + BCQ-modified policy
 
 for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
     for j, budget_option in enumerate(BUDGET_OPTIONS):
@@ -349,7 +349,7 @@ for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
         CONFIG_SETS[id][0]['dqn-twin-uncertainty-type'] = 0  # Q-values variances
 
 # ----------------------------------------------------------------------------------------------------------------------
-# AIR-Simple with constant reuse +  BCQ-modified loss and policy
+# AIR-Simple with constant reuse + BCQ-modified loss and policy
 
 for i, teacher_level_option in enumerate(TEACHER_LEVEL_OPTIONS):
     for j, budget_option in enumerate(BUDGET_OPTIONS):

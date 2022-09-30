@@ -47,6 +47,10 @@ class EpsilonGreedyDQN(DQN):
         self.discrete_bcq_filtering = False
         self.advice_lookup_table = None
 
+        self.initial_imitation_is_performed = False
+        self.bc_model = None
+        self.teacher_model_uc_th = None
+
     # ==================================================================================================================
 
     def build_network(self, name, input, is_dueling, n_hidden_layers, dense_hidden_size_1, dense_hidden_size_2,
@@ -380,9 +384,17 @@ class EpsilonGreedyDQN(DQN):
         action_next_batch = np.argmax(q_values_next_batch, axis=1)
 
         if self.discrete_bcq_filtering:
-            for i, state_id in enumerate(state_id_batch_in):
-                if state_id in self.advice_lookup_table:
-                    action_next_batch[i] = self.advice_lookup_table[state_id]
+            if self.config['env_type'] == GRIDWORLD:
+                for i, state_id in enumerate(state_id_batch_in):
+                    if state_id in self.advice_lookup_table:
+                        action_next_batch[i] = self.advice_lookup_table[state_id]
+
+            elif self.config['env_type'] == ALE and self.initial_imitation_is_performed:
+                for i, obs in enumerate(obs_next_batch_in):
+                    if self.initial_imitation_is_performed:
+                        bc_uncertainty = self.bc_model.get_uncertainty(obs, normalise=False)
+                        if bc_uncertainty < self.teacher_model_uc_th:
+                            action_next_batch[i] = np.argmax(self.bc_model.get_action_probs(obs))
 
         td_target_batch = []
         for j in range(len(reward_batch)):
@@ -452,10 +464,11 @@ class EpsilonGreedyDQN(DQN):
 
     # ==================================================================================================================
 
-    def get_uncertainty(self, obs):
+    def get_uncertainty(self, obs, normalise=True):
         if self.config['dqn_dropout']:
             if self.config['env_type'] == ALE:
-                obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
+                if normalise:
+                    obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
 
             obs_batch = [obs.astype(dtype=np.float32)] * self.config['dqn_dropout_uc_ensembles']
             feed_dict = {self.tf_vars['obs']: obs_batch,
