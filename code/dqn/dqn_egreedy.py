@@ -394,7 +394,7 @@ class EpsilonGreedyDQN(DQN):
                     if self.initial_imitation_is_performed:
                         bc_uncertainty = self.bc_model.get_uncertainty(obs, normalise=False)
                         if bc_uncertainty < self.teacher_model_uc_th:
-                            action_next_batch[i] = np.argmax(self.bc_model.get_action_probs(obs))
+                            action_next_batch[i] = np.argmax(self.bc_model.get_action_probs(obs, normalise=False))
 
         td_target_batch = []
         for j in range(len(reward_batch)):
