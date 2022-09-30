@@ -296,9 +296,10 @@ class BehaviouralCloning(object):
 
     # ==================================================================================================================
 
-    def get_uncertainty(self, obs):
+    def get_uncertainty(self, obs, normalise=True):
         if self.config['env_type'] == ALE:
-            obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
+            if normalise:
+                obs = np.moveaxis(np.asarray(obs, dtype=np.float32) / 255.0, 0, -1)
 
         obs_batch = [obs.astype(dtype=np.float32)] * self.config['bc_uc_ensembles']
         feed_dict = {self.tf_vars['obs']: obs_batch, self.dropout_rate_ph: self.config['bc_dropout_rate']}
