@@ -390,11 +390,21 @@ class EpsilonGreedyDQN(DQN):
                         action_next_batch[i] = self.advice_lookup_table[state_id]
 
             elif self.config['env_type'] == ALE and self.initial_imitation_is_performed:
-                for i, obs in enumerate(obs_next_batch_in):
-                    if self.initial_imitation_is_performed:
-                        bc_uncertainty = self.bc_model.get_uncertainty(obs, normalise=False)
-                        if bc_uncertainty < self.teacher_model_uc_th:
-                            action_next_batch[i] = np.argmax(self.bc_model.get_action_probs(obs, normalise=False))
+                # for i, obs in enumerate(obs_next_batch_in):
+                #     bc_uncertainty = self.bc_model.get_uncertainty(obs, normalise=False)
+                #     if bc_uncertainty < self.teacher_model_uc_th:
+                #         action_next_batch[i] = np.argmax(self.bc_model.get_action_probs(obs, normalise=False))
+                #bc_uncertainty_batch = self.bc_model.get_batch_uncertainty(obs_next_batch_in[0])
+
+                uc = self.bc_model.get_uncertainty_batch(obs_next_batch_in)
+                uc_ind = np.argwhere(uc < self.teacher_model_uc_th).flatten()
+                if uc_ind.shape[0] > 0:
+                    uc_obs = []
+                    for ind in uc_ind:
+                        uc_obs.append(obs_next_batch_in[ind])
+                    filtered_actions = np.argmax(self.bc_model.get_action_probs_batch(np.asarray(uc_obs)), axis=1)
+                    for i, ind in enumerate(uc_ind):
+                        action_next_batch[ind] = filtered_actions[i]
 
         td_target_batch = []
         for j in range(len(reward_batch)):

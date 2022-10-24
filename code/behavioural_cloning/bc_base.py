@@ -236,6 +236,10 @@ class BehaviouralCloning(object):
         feed_dict = {self.tf_vars['obs']: [obs.astype(dtype=np.float32)], self.dropout_rate_ph: 0.0}
         return self.session.run(self.tf_vars['action_probs'], feed_dict=feed_dict)[0]
 
+    def get_action_probs_batch(self, obs_batch):
+        feed_dict = {self.tf_vars['obs']: obs_batch.astype(dtype=np.float32), self.dropout_rate_ph: 0.0}
+        return self.session.run(self.tf_vars['action_probs'], feed_dict=feed_dict)
+
     # ==================================================================================================================
 
     def get_latent_features(self, obs):
@@ -309,4 +313,30 @@ class BehaviouralCloning(object):
         probs_vars = np.var(probs, axis=0)
 
         return np.mean(probs_vars)
+
+    def get_uncertainty_batch(self, obs_batch_in):
+        obs_batch = np.repeat(obs_batch_in, self.config['bc_uc_ensembles'], axis=0)
+        feed_dict = {self.tf_vars['obs']: obs_batch, self.dropout_rate_ph: self.config['bc_dropout_rate']}
+
+        probs = np.asarray(self.session.run(self.tf_vars['action_probs'], feed_dict=feed_dict))
+
+        n_obs = int(probs.shape[0] / self.config['bc_uc_ensembles'])
+        probs_vars = []
+        for i in range(n_obs):
+            i_start = i * self.config['bc_uc_ensembles']
+            i_end = i_start + self.config['bc_uc_ensembles']
+            probs_vars.append(np.mean(np.var(probs[i_start:i_end, :], axis=0)))
+
+        return probs_vars
+
+    # ==================================================================================================================
+
+    # def get_batch_uncertainty(self, obs_batch, normalise=True):
+    #     obs_batch = [obs.astype(dtype=np.float32)] * self.config['bc_uc_ensembles']
+    #     feed_dict = {self.tf_vars['obs']: obs_batch, self.dropout_rate_ph: self.config['bc_dropout_rate']}
+    #
+    #     probs = np.asarray(self.session.run(self.tf_vars['action_probs'], feed_dict=feed_dict))
+    #     probs_vars = np.var(probs, axis=0)
+    #
+    #     return np.mean(probs_vars)
 
