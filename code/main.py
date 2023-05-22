@@ -130,6 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('--bc-dropout-rate', type=float, default=0.35)
     parser.add_argument('--bc-hidden-size', type=int, default=512)
     parser.add_argument('--bc-uc-ensembles', type=int, default=100)
+    parser.add_argument('--bc-uc-ensembles-for-filtering', type=int, default=25)
     parser.add_argument('--bc-use-softmax', action='store_true', default=False)
 
     # Reuse

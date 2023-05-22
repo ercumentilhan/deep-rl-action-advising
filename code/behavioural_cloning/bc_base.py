@@ -27,6 +27,7 @@ class BehaviouralCloning(object):
             'bc_adam_eps',
             'bc_dropout_rate',
             'bc_uc_ensembles',
+            'bc_uc_ensembles_for_filtering'
         ]
         for param in bc_config_params:
             self.config[param] = config[param]
@@ -315,16 +316,16 @@ class BehaviouralCloning(object):
         return np.mean(probs_vars)
 
     def get_uncertainty_batch(self, obs_batch_in):
-        obs_batch = np.repeat(obs_batch_in, self.config['bc_uc_ensembles'], axis=0)
+        obs_batch = np.repeat(obs_batch_in, self.config['bc_uc_ensembles_for_filtering'], axis=0)
         feed_dict = {self.tf_vars['obs']: obs_batch, self.dropout_rate_ph: self.config['bc_dropout_rate']}
 
         probs = np.asarray(self.session.run(self.tf_vars['action_probs'], feed_dict=feed_dict))
 
-        n_obs = int(probs.shape[0] / self.config['bc_uc_ensembles'])
+        n_obs = int(probs.shape[0] / self.config['bc_uc_ensembles_for_filtering'])
         probs_vars = []
         for i in range(n_obs):
-            i_start = i * self.config['bc_uc_ensembles']
-            i_end = i_start + self.config['bc_uc_ensembles']
+            i_start = i * self.config['bc_uc_ensemble_for_filtering']
+            i_end = i_start + self.config['bc_uc_ensembles_for_filtering']
             probs_vars.append(np.mean(np.var(probs[i_start:i_end, :], axis=0)))
 
         return probs_vars

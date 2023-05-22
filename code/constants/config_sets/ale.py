@@ -133,6 +133,7 @@ def generate_config():
     config[0]['bc-dropout-rate'] = 0.35
     config[0]['bc-hidden-size'] = int(512)
     config[0]['bc-uc-ensembles'] = int(100)
+    config[0]['bc-uc-ensembles-for-filtering'] = int(25)
 
     # Reuse (based on the teacher imitation model)
     config[0]['advice-reuse-method'] = 'none'  # 'none', 'restricted', 'extended'
